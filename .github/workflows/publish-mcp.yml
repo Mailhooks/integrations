@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'packages/mcp/package.json'
+      - '.github/workflows/publish-mcp.yml'
   workflow_dispatch:
     inputs:
       version:
@@ -92,8 +93,6 @@ jobs:
         run: |
           cd packages/mcp
           npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create git tag for version
         if: github.event_name == 'push'
