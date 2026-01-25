@@ -50,14 +50,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Get pnpm store directory
         shell: bash
@@ -75,12 +75,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build MCP
-        run: pnpm --filter @mailhooks/mcp build
-
-      - name: Run tests (if any)
-        run: pnpm --filter @mailhooks/mcp test || echo "No tests found"
-
       - name: Update version (if manual trigger)
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -90,9 +84,7 @@ jobs:
           npm version "$INPUT_VERSION" --no-git-tag-version
 
       - name: Publish to npm
-        run: |
-          cd packages/mcp
-          npm publish --access public --provenance
+        run: pnpm --filter @mailhooks/mcp publish --access public --no-git-checks
 
       - name: Create git tag for version
         if: github.event_name == 'push'

@@ -70,12 +70,6 @@ jobs:
             echo "should_publish=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build SDK
-        run: pnpm --filter @mailhooks/sdk build
-
-      - name: Run tests (if any)
-        run: pnpm --filter @mailhooks/sdk test || echo "No tests found"
-
       - name: Update version (if manual trigger)
         if: github.event_name == 'workflow_dispatch'
         env:
