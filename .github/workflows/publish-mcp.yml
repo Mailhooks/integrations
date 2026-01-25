@@ -1,0 +1,146 @@
+name: Publish MCP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/mcp/package.json'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.5)'
+        required: true
+        type: string
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.version_check.outputs.changed }}
+      current_version: ${{ steps.version_check.outputs.current_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if version changed
+        id: version_check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./packages/mcp/package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          if git diff HEAD~1 HEAD -- packages/mcp/package.json | grep -q '"version"'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build MCP
+        run: pnpm --filter @mailhooks/mcp build
+
+      - name: Run tests (if any)
+        run: pnpm --filter @mailhooks/mcp test || echo "No tests found"
+
+      - name: Update version (if manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          cd packages/mcp
+          npm version "$INPUT_VERSION" --no-git-tag-version
+
+      - name: Publish to npm
+        run: |
+          cd packages/mcp
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create git tag for version
+        if: github.event_name == 'push'
+        env:
+          VERSION: ${{ needs.check-version.outputs.current_version }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git tag -a "mcp-v$VERSION" -m "MCP release v$VERSION"
+          git push origin "mcp-v$VERSION"
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: mcp-v${{ needs.check-version.outputs.current_version }}
+          release_name: MCP v${{ needs.check-version.outputs.current_version }}
+          body: |
+            MCP (Model Context Protocol) server release v${{ needs.check-version.outputs.current_version }}
+
+            ## Installation
+            ```bash
+            npm install -g @mailhooks/mcp
+            ```
+
+            ## Configuration
+            Add to your Claude Desktop config:
+            ```json
+            {
+              "mailhooks": {
+                "command": "mcp-mailhooks",
+                "env": {
+                  "MAILHOOKS_API_KEY": "your-api-key"
+                }
+              }
+            }
+            ```
+
+            ## Features
+            - List emails with filtering
+            - Read email content
+            - Wait for emails
+            - List domains
+
+            ## Changes
+            See the [commit history](https://github.com/${{ github.repository }}/commits/mcp-v${{ needs.check-version.outputs.current_version }}) for details.
+          draft: false
+          prerelease: false

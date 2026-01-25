@@ -1,0 +1,45 @@
+{
+  "name": "@mailhooks/sdk",
+  "version": "2.6.0",
+  "description": "TypeScript SDK for Mailhooks API",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsc -p . --watch",
+    "test": "echo \"No tests yet\"",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "mailhooks",
+    "email",
+    "sdk",
+    "typescript",
+    "api"
+  ],
+  "dependencies": {
+    "axios": "^1.6.0",
+    "mailparser": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^20.19.0",
+    "dotenv": "^17.2.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.4.5"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}
