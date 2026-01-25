@@ -1,7 +1,16 @@
 {
   "name": "@mailhooks/mcp",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "MCP server for Mailhooks API - list and read emails",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mailhooks/integrations.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/Mailhooks/integrations#readme",
+  "bugs": {
+    "url": "https://github.com/Mailhooks/integrations/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
