@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -91,7 +90,7 @@ jobs:
           (github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true')
         run: |
           cd packages/sdk
-          npm publish --access public
+          npm publish --access public --provenance
 
       - name: Create git tag for version
         if: github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true'
