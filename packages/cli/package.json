@@ -1,0 +1,55 @@
+{
+  "name": "@mailhooks/cli",
+  "version": "1.0.0",
+  "description": "CLI for Mailhooks - list, read, and manage emails from the command line",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mailhooks/integrations.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Mailhooks/integrations#readme",
+  "bugs": {
+    "url": "https://github.com/Mailhooks/integrations/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mailhooks": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "mailhooks",
+    "email",
+    "cli",
+    "command-line",
+    "testing",
+    "automation"
+  ],
+  "dependencies": {
+    "@mailhooks/sdk": "workspace:*",
+    "axios": "^1.7.9",
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ]
+}
