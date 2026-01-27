@@ -78,6 +78,9 @@ jobs:
           cd packages/n8n
           npm version "$INPUT_VERSION" --no-git-tag-version
 
+      - name: Build SDK (workspace dependency)
+        run: pnpm --filter @mailhooks/sdk run build
+
       - name: Build package
         run: pnpm --filter n8n-nodes-mailhooks run build
 
