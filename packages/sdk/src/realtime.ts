@@ -1,4 +1,10 @@
 import { MailhooksConfig } from './types';
+import { EventSource as EvtSource } from 'eventsource';
+
+// Auto-polyfill EventSource for Node.js environments
+if (typeof globalThis.EventSource === 'undefined') {
+  (globalThis as any).EventSource = EvtSource;
+}
 
 /**
  * Connection mode for SSE subscriptions

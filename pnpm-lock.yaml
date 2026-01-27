@@ -32,6 +32,9 @@ importers:
       axios:
         specifier: ^1.6.0
         version: 1.13.3
+      eventsource:
+        specifier: ^3.0.0
+        version: 3.0.7
       mailparser:
         specifier: ^3.7.2
         version: 3.9.1
