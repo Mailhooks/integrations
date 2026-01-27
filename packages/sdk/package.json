@@ -1,6 +1,6 @@
 {
   "name": "@mailhooks/sdk",
-  "version": "2.6.11",
+  "version": "2.6.12",
   "description": "TypeScript SDK for Mailhooks API",
   "repository": {
     "type": "git",
