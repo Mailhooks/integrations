@@ -1,0 +1,66 @@
+{
+  "name": "n8n-nodes-mailhooks",
+  "version": "0.1.1",
+  "description": "n8n community node for Mailhooks - receive, filter, and process emails in your n8n workflows",
+  "license": "MIT",
+  "homepage": "https://github.com/Mailhooks/integrations#readme",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "mailhooks",
+    "email",
+    "webhook"
+  ],
+  "author": {
+    "name": "Adam Hancock",
+    "email": "adam@assurix.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mailhooks/integrations.git",
+    "directory": "packages/n8n"
+  },
+  "bugs": {
+    "url": "https://github.com/Mailhooks/integrations/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "n8n-node build",
+    "build:watch": "tsc --watch",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": false,
+    "credentials": [
+      "dist/credentials/MailhooksApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Mailhooks/Mailhooks.node.js",
+      "dist/nodes/MailhooksTrigger/MailhooksTrigger.node.js",
+      "dist/nodes/MailhooksPollingTrigger/MailhooksPollingTrigger.node.js"
+    ]
+  },
+  "dependencies": {
+    "@mailhooks/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "*",
+    "eslint": "9.32.0",
+    "prettier": "3.6.2",
+    "release-it": "^19.0.4",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

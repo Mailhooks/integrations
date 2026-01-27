@@ -1,0 +1,126 @@
+name: Publish n8n Nodes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/n8n/package.json'
+      - '.github/workflows/publish-n8n.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check version change
+        if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+        id: version_check
+        run: |
+          # Get the current version from package.json
+          CURRENT_VERSION=$(node -p "require('./packages/n8n/package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this version is already published on npm
+          NPM_VERSION=$(npm view n8n-nodes-mailhooks version 2>/dev/null || echo "0.0.0")
+          echo "npm_version=$NPM_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT_VERSION" = "$NPM_VERSION" ]; then
+            echo "Version $CURRENT_VERSION is already published. Skipping."
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected: $CURRENT_VERSION (npm has $NPM_VERSION)"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version (if manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          cd packages/n8n
+          npm version "$INPUT_VERSION" --no-git-tag-version
+
+      - name: Build package
+        run: pnpm --filter n8n-nodes-mailhooks run build
+
+      - name: Publish to npm
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          startsWith(github.ref, 'refs/tags/') ||
+          (github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true')
+        run: pnpm --filter n8n-nodes-mailhooks publish --access public --no-git-checks
+
+      - name: Create git tag for version
+        if: github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true'
+        env:
+          VERSION: ${{ steps.version_check.outputs.current_version }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git tag -a "n8n-v$VERSION" -m "n8n nodes release v$VERSION"
+          git push origin "n8n-v$VERSION"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('n8n-v{0}', steps.version_check.outputs.current_version) }}
+          release_name: n8n Nodes ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.version_check.outputs.current_version) }}
+          body: |
+            n8n Community Nodes release ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.version_check.outputs.current_version) }}
+
+            ## Installation
+            ```bash
+            npm install n8n-nodes-mailhooks
+            ```
+
+            Or install directly in n8n:
+            1. Go to **Settings** > **Community Nodes**
+            2. Select **Install**
+            3. Enter `n8n-nodes-mailhooks`
+            4. Agree to the risks and select **Install**
+
+            ## Changes
+            See the [commit history](https://github.com/${{ github.repository }}/commits/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('n8n-v{0}', steps.version_check.outputs.current_version) }}) for details.
+          draft: false
+          prerelease: false

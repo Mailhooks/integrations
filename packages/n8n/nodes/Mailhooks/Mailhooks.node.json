@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-base.mailhooks",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Communication", "Development"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://mailhooks.dev/docs"
+			}
+		],
+		"credentialDocumentation": [
+			{
+				"url": "https://mailhooks.dev/docs"
+			}
+		]
+	},
+	"alias": ["email", "mail", "inbox", "webhook"],
+	"subcategories": {
+		"Communication": ["Email"]
+	}
+}
