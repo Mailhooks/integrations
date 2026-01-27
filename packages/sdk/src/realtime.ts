@@ -198,14 +198,36 @@ export class RealtimeResource {
     }
 
     const baseUrl = this.config.baseUrl ?? 'https://mailhooks.dev/api';
-    // Pass API key as token query parameter since EventSource doesn't support custom headers
-    // Include mode for broadcast/distributed selection
-    const url = `${baseUrl}/v1/realtime/events?token=${encodeURIComponent(this.config.apiKey)}&mode=${mode}`;
+    const url = `${baseUrl}/v1/realtime/events?mode=${mode}`;
 
+    const apiKey = this.config.apiKey;
+    
     const connect = () => {
-      this.eventSource = new EventSource(url);
+      // Use custom fetch to add X-API-Key header (works with eventsource v3+)
+      // Falls back to token query param for environments without fetch option support
+      const urlWithToken = `${url}&token=${encodeURIComponent(apiKey)}`;
+      
+      const eventSourceOptions = {
+        fetch: (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+          fetch(input, {
+            ...init,
+            headers: {
+              ...(init?.headers || {}),
+              'X-API-Key': apiKey,
+            },
+          }),
+      };
+      
+      try {
+        // Try with custom fetch first (eventsource v3+)
+        this.eventSource = new (EventSource as any)(url, eventSourceOptions);
+      } catch {
+        // Fall back to URL token for older packages or browsers
+        this.eventSource = new EventSource(urlWithToken);
+      }
 
-      this.eventSource.onmessage = (event) => {
+      const es = this.eventSource!;
+      es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as RealtimeEvent;
 
@@ -229,7 +251,7 @@ export class RealtimeResource {
         }
       };
 
-      this.eventSource.onerror = (event) => {
+      es.onerror = () => {
         onError?.(new Error('SSE connection error'));
 
         // Close the connection
