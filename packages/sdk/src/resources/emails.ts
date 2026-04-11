@@ -109,6 +109,19 @@ export class EmailsResource extends MailhooksClient {
   }
 
   /**
+   * Permanently delete an email and its attachments.
+   *
+   * Deleted emails still count towards the monthly usage quota — this frees up
+   * storage and removes the email from the inbox, but does not refund usage
+   * since the email was already received and billed at ingestion time.
+   *
+   * @param emailId - The ID of the email to delete
+   */
+  async deleteEmail(emailId: string): Promise<void> {
+    return super.delete<void>(`/v1/emails/${emailId}`);
+  }
+
+  /**
    * Wait for an email that matches the given filters
    *
    * @param options - Options for waiting including filters, timeouts, and delays

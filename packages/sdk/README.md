@@ -116,6 +116,17 @@ const unreadEmail = await mailhooks.emails.markAsUnread('email-id');
 console.log(unreadEmail.read); // false
 ```
 
+#### Delete Email
+
+```typescript
+// Permanently delete an email and its attachments
+await mailhooks.emails.deleteEmail('email-id');
+```
+
+> ⚠️ Deleted emails still count towards your monthly usage quota — the email was
+> already received and billed at ingestion time. Use delete to free up storage,
+> not to reduce usage. This action is irreversible.
+
 #### Wait for Email
 
 Wait for an email that matches specific filters. Useful for testing and automation.
