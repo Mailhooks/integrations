@@ -43,16 +43,25 @@ async function startStdio() {
 async function startSSE(port: number) {
   const app = createMcpExpressApp();
 
-  let transport: SSEServerTransport | null = null;
+  const transports: Map<string, SSEServerTransport> = new Map();
 
   app.get('/sse', async (_req, res) => {
     const mcpServer = new MailhooksMCPServer(apiKey!, apiUrl);
-    transport = new SSEServerTransport('/messages', res);
+    const transport = new SSEServerTransport('/messages', res);
+    const sessionId = transport.sessionId;
+    transports.set(sessionId, transport);
     await mcpServer.getServer().connect(transport);
-    console.error('SSE client connected');
+    console.error(`SSE client connected: ${sessionId}`);
+
+    transport.onclose = () => {
+      transports.delete(sessionId);
+      console.error(`SSE client disconnected: ${sessionId}`);
+    };
   });
 
   app.post('/messages', async (req, res) => {
+    const sessionId = req.query.sessionId as string;
+    const transport = sessionId ? transports.get(sessionId) : transports.values().next().value;
     if (transport) {
       await transport.handlePostMessage(req, res, req.body);
     } else {

@@ -37,6 +37,21 @@ const searchEmailsSchema = z.object({
 
 const downloadEmailSchema = z.object({ id: z.string() });
 
+const deleteEmailSchema = z.object({ id: z.string() });
+
+const markAsReadSchema = z.object({ id: z.string() });
+
+const markAsUnreadSchema = z.object({ id: z.string() });
+
+const waitForEmailSchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  subject: z.string().optional(),
+  timeout: z.number().optional(),
+  pollInterval: z.number().optional(),
+  lookbackWindow: z.number().optional(),
+});
+
 const listAttachmentsSchema = z.object({ emailId: z.string() });
 
 const getAttachmentSchema = z.object({
@@ -133,11 +148,11 @@ const emailTools: Tool[] = [
   },
   {
     name: 'search_emails',
-    description: 'Search emails by query (matched against subject, from, to)',
+    description: 'Search emails by querying subject, sender, and recipient in parallel and merging results',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Search query (matched against subject, from, to)' },
+        query: { type: 'string', description: 'Search query (matched against subject, from, and to)' },
         inboxId: { type: 'string', description: 'Restrict search to this inbox' },
         limit: { type: 'number', description: 'Max results (default: 20)' },
       },
@@ -151,6 +166,48 @@ const emailTools: Tool[] = [
       type: 'object',
       properties: { id: { type: 'string', description: 'Email ID' } },
       required: ['id'],
+    },
+  },
+  {
+    name: 'delete_email',
+    description: 'Permanently delete an email and its attachments',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Email ID' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'mark_as_read',
+    description: 'Mark an email as read',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Email ID' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'mark_as_unread',
+    description: 'Mark an email as unread',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Email ID' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'wait_for_email',
+    description: 'Wait for an email matching filters. Polls until a match is found or timeout expires. Useful for testing and automation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'Filter by sender email' },
+        to: { type: 'string', description: 'Filter by recipient email' },
+        subject: { type: 'string', description: 'Filter by subject (partial match)' },
+        timeout: { type: 'number', description: 'Max wait time in ms (default: 30000)' },
+        pollInterval: { type: 'number', description: 'Time between checks in ms (default: 1000)' },
+        lookbackWindow: { type: 'number', description: 'How far back to look on first check in ms (default: 10000)' },
+      },
     },
   },
   {
@@ -320,6 +377,14 @@ export class MailhooksMCPServer {
             return await this.handleSearchEmails(args);
           case 'download_email':
             return await this.handleDownloadEmail(args);
+          case 'delete_email':
+            return await this.handleDeleteEmail(args);
+          case 'mark_as_read':
+            return await this.handleMarkAsRead(args);
+          case 'mark_as_unread':
+            return await this.handleMarkAsUnread(args);
+          case 'wait_for_email':
+            return await this.handleWaitForEmail(args);
           case 'list_attachments':
             return await this.handleListAttachments(args);
           case 'get_attachment':
@@ -412,18 +477,128 @@ export class MailhooksMCPServer {
 
   private async handleSearchEmails(args: any) {
     const parsed = searchEmailsSchema.parse(args);
-    const params: Record<string, any> = {};
-    if (parsed.inboxId) params.inboxId = parsed.inboxId;
-    if (parsed.limit) params.perPage = parsed.limit;
-    params['filter.subject'] = parsed.query;
-    const data = await this.api.listEmails(params);
-    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    const baseParams: Record<string, any> = {};
+    if (parsed.inboxId) baseParams.inboxId = parsed.inboxId;
+    if (parsed.limit) baseParams.perPage = parsed.limit;
+
+    // Search across subject, from, and to in parallel, then merge and deduplicate
+    const [bySubject, byFrom, byTo] = await Promise.all([
+      this.api.listEmails({ ...baseParams, 'filter.subject': parsed.query }),
+      this.api.listEmails({ ...baseParams, 'filter.from': parsed.query }),
+      this.api.listEmails({ ...baseParams, 'filter.to': parsed.query }),
+    ]);
+
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const email of [...(bySubject.data ?? []), ...(byFrom.data ?? []), ...(byTo.data ?? [])]) {
+      if (!seen.has(email.id)) {
+        seen.add(email.id);
+        merged.push(email);
+      }
+    }
+
+    // Sort by createdAt descending and apply limit
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const limit = parsed.limit ?? 20;
+    const results = merged.slice(0, limit);
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: JSON.stringify({ data: results, totalItems: merged.length }, null, 2),
+      }],
+    };
   }
 
   private async handleDownloadEmail(args: any) {
     const parsed = downloadEmailSchema.parse(args);
     const eml = await this.api.downloadEml(parsed.id);
     return { content: [{ type: 'text' as const, text: eml }] };
+  }
+
+  private async handleDeleteEmail(args: any) {
+    const parsed = deleteEmailSchema.parse(args);
+    await this.api.deleteEmail(parsed.id);
+    return { content: [{ type: 'text' as const, text: `Email ${parsed.id} deleted` }] };
+  }
+
+  private async handleMarkAsRead(args: any) {
+    const parsed = markAsReadSchema.parse(args);
+    const data = await this.api.markAsRead(parsed.id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  }
+
+  private async handleMarkAsUnread(args: any) {
+    const parsed = markAsUnreadSchema.parse(args);
+    const data = await this.api.markAsUnread(parsed.id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  }
+
+  private async handleWaitForEmail(args: any) {
+    const parsed = waitForEmailSchema.parse(args);
+    const {
+      from,
+      to,
+      subject,
+      timeout = 30000,
+      pollInterval = 1000,
+      lookbackWindow = 10000,
+    } = parsed;
+
+    const startTime = Date.now();
+    let lastCheckedTime: Date | null = null;
+
+    const checkForEmail = async (isFirstCheck: boolean): Promise<any | null> => {
+      try {
+        const now = new Date();
+        const startDateFilter = isFirstCheck
+          ? new Date(now.getTime() - lookbackWindow).toISOString()
+          : lastCheckedTime
+            ? lastCheckedTime.toISOString()
+            : new Date(now.getTime() - lookbackWindow).toISOString();
+
+        const params: Record<string, any> = {
+          'filter.createdAfter': startDateFilter,
+          perPage: 10,
+        };
+        if (from) params['filter.from'] = from;
+        if (to) params['filter.to'] = to;
+        if (subject) params['filter.subject'] = subject;
+
+        const response = await this.api.listEmails(params);
+        lastCheckedTime = now;
+
+        if (response.data?.length > 0) {
+          return response.data[0];
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
+    // Check immediately
+    const existing = await checkForEmail(true);
+    if (existing) {
+      return { content: [{ type: 'text' as const, text: JSON.stringify(existing, null, 2) }] };
+    }
+
+    // Poll
+    while (true) {
+      if (Date.now() - startTime > timeout) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: Timeout waiting for email after ${timeout}ms` }],
+          isError: true,
+        };
+      }
+
+      const email = await checkForEmail(false);
+      if (email) {
+        return { content: [{ type: 'text' as const, text: JSON.stringify(email, null, 2) }] };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
   }
 
   private async handleListAttachments(args: any) {

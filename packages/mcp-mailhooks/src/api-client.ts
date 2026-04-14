@@ -92,6 +92,21 @@ export class MailhooksClient {
     };
   }
 
+  async deleteEmail(id: string) {
+    const res = await this.http.delete(`/emails/${id}`);
+    return res.data;
+  }
+
+  async markAsRead(id: string) {
+    const res = await this.http.patch(`/emails/${id}/read`);
+    return res.data;
+  }
+
+  async markAsUnread(id: string) {
+    const res = await this.http.patch(`/emails/${id}/unread`);
+    return res.data;
+  }
+
   // ── Webhooks ────────────────────────────────────────────────────────────
 
   async listWebhooks(params?: { inboxId?: string }) {

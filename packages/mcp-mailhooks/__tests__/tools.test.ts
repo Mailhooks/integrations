@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MailhooksClient } from '../src/api-client.js';
-import { MailhooksMCPServer } from '../src/server.js';
 
 // Mock axios so no real HTTP calls happen
 vi.mock('axios', () => {
@@ -17,21 +16,6 @@ vi.mock('axios', () => {
   };
 });
 
-// Helper to create a server and call a tool
-async function callTool(name: string, args: Record<string, any> = {}) {
-  const server = new MailhooksMCPServer('test-key', 'https://test.api');
-  const mcpServer = server.getServer();
-
-  // Simulate a CallToolRequest
-  const result = await (mcpServer as any)._requestHandlers?.get?.(
-    'tools/call',
-  );
-
-  // Direct approach: call the handler via the server's internal dispatch
-  // Since we can't easily invoke MCP handlers directly, we test through the client
-  return null;
-}
-
 describe('MailhooksClient', () => {
   let client: MailhooksClient;
   let mockHttp: any;
@@ -39,9 +23,10 @@ describe('MailhooksClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     client = new MailhooksClient('test-key', 'https://test.api');
-    // Access the internal axios instance to set up mocks
     mockHttp = (client as any).http;
   });
+
+  // ── Inboxes ──────────────────────────────────────────────────────────
 
   describe('listInboxes', () => {
     it('calls GET /inboxes with params', async () => {
@@ -77,6 +62,8 @@ describe('MailhooksClient', () => {
       expect(result.name).toBe('New');
     });
   });
+
+  // ── Emails ───────────────────────────────────────────────────────────
 
   describe('listEmails', () => {
     it('calls GET /emails with filter params', async () => {
@@ -127,6 +114,36 @@ describe('MailhooksClient', () => {
     });
   });
 
+  describe('deleteEmail', () => {
+    it('calls DELETE /emails/:id', async () => {
+      mockHttp.delete.mockResolvedValue({ data: null });
+      await client.deleteEmail('email-1');
+      expect(mockHttp.delete).toHaveBeenCalledWith('/emails/email-1');
+    });
+  });
+
+  describe('markAsRead', () => {
+    it('calls PATCH /emails/:id/read', async () => {
+      mockHttp.patch.mockResolvedValue({
+        data: { id: 'email-1', read: true },
+      });
+      const result = await client.markAsRead('email-1');
+      expect(mockHttp.patch).toHaveBeenCalledWith('/emails/email-1/read');
+      expect(result.read).toBe(true);
+    });
+  });
+
+  describe('markAsUnread', () => {
+    it('calls PATCH /emails/:id/unread', async () => {
+      mockHttp.patch.mockResolvedValue({
+        data: { id: 'email-1', read: false },
+      });
+      const result = await client.markAsUnread('email-1');
+      expect(mockHttp.patch).toHaveBeenCalledWith('/emails/email-1/unread');
+      expect(result.read).toBe(false);
+    });
+  });
+
   describe('listAttachments', () => {
     it('gets email and returns attachments array', async () => {
       mockHttp.get.mockResolvedValue({
@@ -158,6 +175,8 @@ describe('MailhooksClient', () => {
       expect(result.data).toBe(Buffer.from('file-content').toString('base64'));
     });
   });
+
+  // ── Webhooks ─────────────────────────────────────────────────────────
 
   describe('listWebhooks', () => {
     it('calls GET /webhooks with inboxId filter', async () => {
@@ -208,6 +227,8 @@ describe('MailhooksClient', () => {
     });
   });
 
+  // ── Domains ──────────────────────────────────────────────────────────
+
   describe('listDomains', () => {
     it('calls GET /domains', async () => {
       mockHttp.get.mockResolvedValue({ data: [{ id: 'd-1', domain: 'test.dev' }] });
@@ -236,6 +257,8 @@ describe('MailhooksClient', () => {
       expect(result.verified).toBe(true);
     });
   });
+
+  // ── Tenant & Usage ───────────────────────────────────────────────────
 
   describe('getTenant', () => {
     it('calls GET /tenant', async () => {

@@ -115,6 +115,8 @@ Connect remote clients to:
 - SSE endpoint: `http://localhost:4000/sse`
 - POST endpoint: `http://localhost:4000/messages`
 
+The SSE server supports multiple concurrent clients. Each connection is tracked by session ID.
+
 ## Tools
 
 All tools are prefixed `mcp__mailhooks__` in MCP client UIs.
@@ -133,8 +135,12 @@ All tools are prefixed `mcp__mailhooks__` in MCP client UIs.
 |---|---|---|
 | `list_emails` | List emails with filters and pagination | `inboxId?`, `limit?`, `cursor?`, `from?`, `to?`, `subject?` |
 | `get_email` | Full parsed email (HTML + text + attachment metadata) | `id` (required) |
-| `search_emails` | Search by query (subject, from, to) | `query` (required), `inboxId?`, `limit?` |
+| `search_emails` | Search across subject, sender, and recipient in parallel; merges and deduplicates results | `query` (required), `inboxId?`, `limit?` |
 | `download_email` | Raw .eml content as text | `id` (required) |
+| `delete_email` | Permanently delete an email and its attachments | `id` (required) |
+| `mark_as_read` | Mark an email as read | `id` (required) |
+| `mark_as_unread` | Mark an email as unread | `id` (required) |
+| `wait_for_email` | Poll until a matching email arrives (useful for testing and automation) | `from?`, `to?`, `subject?`, `timeout?`, `pollInterval?`, `lookbackWindow?` |
 | `list_attachments` | List attachment metadata for an email | `emailId` (required) |
 | `get_attachment` | Attachment content as base64 + MIME type | `emailId` (required), `attachmentId` (required) |
 
