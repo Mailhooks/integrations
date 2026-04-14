@@ -7,7 +7,8 @@ Official integration packages for [Mailhooks](https://mailhooks.dev) - the email
 | Package | Version | Description |
 |---------|---------|-------------|
 | [@mailhooks/sdk](./packages/sdk) | [![npm](https://img.shields.io/npm/v/@mailhooks/sdk)](https://www.npmjs.com/package/@mailhooks/sdk) | TypeScript SDK for the Mailhooks API |
-| [@mailhooks/mcp](./packages/mcp) | [![npm](https://img.shields.io/npm/v/@mailhooks/mcp)](https://www.npmjs.com/package/@mailhooks/mcp) | MCP server for Claude Desktop integration |
+| [@mailhooks/mcp](./packages/mcp) | [![npm](https://img.shields.io/npm/v/@mailhooks/mcp)](https://www.npmjs.com/package/@mailhooks/mcp) | MCP server for Claude Desktop integration (legacy) |
+| [mcp-mailhooks](./packages/mcp-mailhooks) | [![npm](https://img.shields.io/npm/v/mcp-mailhooks)](https://www.npmjs.com/package/mcp-mailhooks) | MCP server with full API coverage (inboxes, emails, webhooks, domains, usage) |
 
 ## Quick Start
 
@@ -44,7 +45,7 @@ const subscription = mailhooks.realtime.subscribe({
 ### MCP Server
 
 ```bash
-npm install -g @mailhooks/mcp
+npm install -g mcp-mailhooks
 ```
 
 Add to your Claude Desktop config:
@@ -54,7 +55,7 @@ Add to your Claude Desktop config:
   "mcpServers": {
     "mailhooks": {
       "command": "npx",
-      "args": ["@mailhooks/mcp"],
+      "args": ["mcp-mailhooks"],
       "env": {
         "MAILHOOKS_API_KEY": "your-api-key"
       }
@@ -62,6 +63,8 @@ Add to your Claude Desktop config:
   }
 }
 ```
+
+See the [mcp-mailhooks README](./packages/mcp-mailhooks) for full tool reference and config examples for Claude Code, Cursor, and SSE transport.
 
 ## Development
 

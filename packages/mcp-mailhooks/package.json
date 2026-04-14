@@ -1,0 +1,60 @@
+{
+  "name": "mcp-mailhooks",
+  "version": "0.1.0",
+  "description": "MCP server for Mailhooks API — full coverage for inboxes, emails, webhooks, domains, tenant & usage",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mailhooks/integrations.git",
+    "directory": "packages/mcp-mailhooks"
+  },
+  "homepage": "https://mailhooks.dev",
+  "bugs": {
+    "url": "https://github.com/Mailhooks/integrations/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-mailhooks": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "axios": "^1.7.9",
+    "commander": "^13.1.0",
+    "express": "^5.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mailhooks",
+    "mcp",
+    "model-context-protocol",
+    "email",
+    "ai",
+    "claude",
+    "cursor"
+  ]
+}
