@@ -30,8 +30,8 @@ importers:
   packages/n8n:
     dependencies:
       '@mailhooks/sdk':
-        specifier: workspace:*
-        version: link:../sdk
+        specifier: ^2.6.14
+        version: 2.6.14
       n8n-workflow:
         specifier: '*'
         version: 1.120.7
@@ -474,6 +474,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@mailhooks/sdk@2.6.14':
+    resolution: {integrity: sha512-VHLAsRWQGZTHvJ7SLxZaTHi8TgQ3fB5jPsBdoCXo4qhGs4x+8SEzIsfa4QCFUhnRVUKz24WjCja/EJmRUEhPFg==}
 
   '@modelcontextprotocol/sdk@1.25.3':
     resolution: {integrity: sha512-vsAMBMERybvYgKbg/l4L1rhS7VXV1c0CtyJg72vwxONVX0l4ZfKVAnZEWTQixJGTzKnELjQ59e4NbdFDALRiAQ==}
@@ -3192,6 +3195,14 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@mailhooks/sdk@2.6.14':
+    dependencies:
+      axios: 1.13.3
+      eventsource: 3.0.7
+      mailparser: 3.9.1
+    transitivePeerDependencies:
+      - debug
 
   '@modelcontextprotocol/sdk@1.25.3(hono@4.11.5)(zod@4.3.6)':
     dependencies:
