@@ -5,13 +5,13 @@ import type {
 	INodeExecutionData,
 } from 'n8n-workflow';
 import { NodeConnectionTypes, NodeApiError } from 'n8n-workflow';
-import { Mailhooks as MailhooksSDK } from '@mailhooks/sdk';
+import { Mailhooks as MailhooksSDK, type Email } from '@mailhooks/sdk';
 
 export class MailhooksPollingTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Mailhooks Polling Trigger',
 		name: 'mailhooksPollingTrigger',
-		icon: 'file:mailhooks-logo.png',
+		icon: 'file:mailhooks-logo.svg',
 		group: ['trigger'],
 		version: 1,
 		subtitle: 'Poll for new emails',
@@ -120,7 +120,7 @@ export class MailhooksPollingTrigger implements INodeType {
 
 			// Filter out already processed emails by ID
 			const newEmails = response.data.filter(
-				(email) => !processedIds.includes(email.id)
+				(email: Email) => !processedIds.includes(email.id)
 			);
 
 			if (newEmails.length === 0) {
@@ -130,13 +130,13 @@ export class MailhooksPollingTrigger implements INodeType {
 			// Update processed IDs - keep only recent ones to avoid memory bloat
 			// Keep IDs from current batch plus last 100 to handle edge cases
 			const newProcessedIds = [
-				...newEmails.map((email) => email.id),
+				...newEmails.map((email: Email) => email.id),
 				...processedIds.slice(0, 100),
 			];
 			webhookData.processedIds = newProcessedIds;
 
 			return [
-				newEmails.map((email) => ({
+				newEmails.map((email: Email) => ({
 					json: {
 						id: email.id,
 						from: email.from,
