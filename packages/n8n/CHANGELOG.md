@@ -1,22 +1,28 @@
 # Changelog
 
-## 0.1.1
+## 0.2.0
 
 ### Added
 
-- **Mailhooks action node** with 5 resources and 21 operations:
-  - **Domain**: List, Verify
-  - **Email**: Delete, Download Attachment, Download EML, Get, Get Content, List, Mark as Read, Mark as Unread, Wait For
-  - **Inbox**: Create, Get, List
-  - **Webhook**: Create, Delete, Get, List, Update
-  - **Utility**: Parse EML, Verify Webhook
-- **MailhooksTrigger** — webhook trigger that receives `email.received` events in real-time with optional signature verification
-- **MailhooksPollingTrigger** — polling trigger that checks for new emails at intervals with deduplication
-- **MailhooksApi credentials** — stores API key + base URL with a test button that hits `GET /v1/emails?perPage=1`
-- SVG icons for all three nodes
+- **Inbox resource**: List, Get, Create operations
+- **Webhook resource**: List, Get, Create, Update, Delete operations
+- **Domain resource**: List, Verify operations
+- **Email Delete** operation
+- **Auto-register webhook trigger**: MailhooksTrigger now automatically creates a Mailhooks webhook on workflow activation and removes it on deactivation
+- **Inbox filter** on MailhooksTrigger
+- **SVG icons** for all three nodes (replaces PNGs for n8n community node compliance)
 - Unit tests for all nodes and credentials (42 tests)
+- Jest config with mocks for `n8n-workflow` and `@mailhooks/sdk`
 
 ### Changed
 
-- SDK dependency uses `^2.6.14` (published npm package) instead of workspace link
-- Migrated node icons from PNG to SVG for n8n community node compliance
+- SDK dependency uses `^2.6.14` (published npm package) instead of `workspace:*`
+- MailhooksTrigger now uses `webhookMethods` for automatic webhook lifecycle (previously required manual webhook URL configuration)
+- Credential test endpoint updated to `GET /v1/emails?perPage=1`
+
+## 0.1.1
+
+- Initial release with Email and Utility resources
+- MailhooksTrigger (manual webhook URL configuration)
+- MailhooksPollingTrigger
+- MailhooksApi credentials
