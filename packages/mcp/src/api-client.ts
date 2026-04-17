@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 
-const DEFAULT_BASE_URL = 'https://app.mailhooks.dev/api/v1';
+const DEFAULT_BASE_URL = 'https://mailhooks.dev/api/v1';
 
 export class MailhooksClient {
   private http: AxiosInstance;

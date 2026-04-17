@@ -49,7 +49,7 @@ npx @mailhooks/mcp
 ### Required Environment Variables
 
 - `MAILHOOKS_API_KEY` (required): Your Mailhooks API key
-- `MAILHOOKS_API_URL` (optional): API base URL (defaults to `https://app.mailhooks.dev/api/v1`)
+- `MAILHOOKS_API_URL` (optional): API base URL (defaults to `https://mailhooks.dev/api/v1`)
 
 ### Getting your API Key
 
@@ -176,5 +176,5 @@ v2 is backward compatible with v1:
 | `wait_for_email` | `wait_for_email` | Same name, same params, returns JSON instead of formatted text |
 
 **Other changes:**
-- Default API URL changed from `https://mailhooks.dev` to `https://app.mailhooks.dev/api/v1` — set `MAILHOOKS_API_URL` if you need the old URL
+- Default API URL changed from `https://mailhooks.dev` (v1, no `/api/v1` path) to `https://mailhooks.dev/api/v1` (v2, with proper path)
 - Output format changed from human-readable text to JSON — structured data is easier for LLMs to parse
