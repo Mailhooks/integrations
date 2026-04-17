@@ -33,11 +33,28 @@ The main node for interacting with the Mailhooks API.
 - **List** - List emails with optional filters (from, to, subject, date range, read status)
 - **Get** - Get a specific email by ID
 - **Get Content** - Get the HTML and text content of an email
+- **Delete** - Delete an email
 - **Mark as Read** - Mark an email as read
 - **Mark as Unread** - Mark an email as unread
 - **Download EML** - Download email in EML format
 - **Download Attachment** - Download a specific attachment
 - **Wait For** - Wait for an email matching filters (useful for testing flows)
+
+**Inbox Operations:**
+- **List** - List all inboxes
+- **Get** - Get a specific inbox by ID
+- **Create** - Create a new inbox
+
+**Webhook Operations:**
+- **List** - List all webhooks
+- **Get** - Get a specific webhook by ID
+- **Create** - Create a new webhook (specify URL and events)
+- **Update** - Update a webhook (URL, active status)
+- **Delete** - Delete a webhook
+
+**Domain Operations:**
+- **List** - List all domains
+- **Verify** - Trigger domain verification
 
 **Utility Operations:**
 - **Parse EML** - Parse raw EML content into structured data
@@ -45,10 +62,12 @@ The main node for interacting with the Mailhooks API.
 
 ### Mailhooks Trigger
 
-A webhook trigger that starts the workflow when a new email is received. Configure the webhook URL in your Mailhooks dashboard to point to the n8n webhook URL.
+A webhook trigger that starts the workflow when a new email is received. When the workflow is activated, this node automatically creates a webhook in Mailhooks pointing at n8n's webhook URL. When the workflow is deactivated, the webhook is automatically removed.
 
 Features:
-- Receives `email.received` events in real-time
+- Automatically registers a Mailhooks webhook on workflow activation
+- Automatically removes the webhook on workflow deactivation
+- Optional inbox filter to restrict trigger to a specific inbox
 - Optional signature verification for security
 - Returns full email data including headers, body, attachments, and authentication results (SPF, DKIM, DMARC)
 
@@ -80,9 +99,10 @@ To use the Mailhooks nodes, you need to configure credentials:
 ### Receiving emails via webhook
 
 1. Add a **Mailhooks Trigger** node to your workflow
-2. Activate the workflow to get the webhook URL
-3. Copy the webhook URL and add it to your Mailhooks dashboard
+2. Configure your Mailhooks API credentials
+3. (Optional) Select a specific inbox to filter by
 4. (Optional) Add a webhook secret for signature verification
+5. Activate the workflow — the webhook is created automatically
 
 ### Polling for new emails
 
@@ -96,8 +116,29 @@ To use the Mailhooks nodes, you need to configure credentials:
 Use the **Mailhooks** node to:
 - List and search emails
 - Get email content and attachments
+- Delete emails
 - Mark emails as read/unread
 - Wait for specific emails (great for automated testing)
+
+### Managing inboxes
+
+Use the **Mailhooks** node with the **Inbox** resource to:
+- List all inboxes
+- Get inbox details
+- Create new inboxes
+
+### Managing webhooks
+
+Use the **Mailhooks** node with the **Webhook** resource to:
+- List all webhooks
+- Get webhook details
+- Create, update, or delete webhooks
+
+### Managing domains
+
+Use the **Mailhooks** node with the **Domain** resource to:
+- List all domains
+- Trigger domain verification
 
 ### Example: Process incoming emails
 
@@ -107,7 +148,7 @@ Use the **Mailhooks** node to:
                     [Google Sheets]
 ```
 
-1. Trigger on new email
+1. Trigger on new email (webhook auto-registered)
 2. Check if subject contains "urgent"
 3. Send to Slack if urgent, otherwise log to Google Sheets
 

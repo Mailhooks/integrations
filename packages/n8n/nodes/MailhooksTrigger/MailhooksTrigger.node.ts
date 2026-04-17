@@ -4,6 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 	IWebhookResponseData,
+	IDataObject,
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 import { verifyWebhookSignature, parseWebhookPayload } from '@mailhooks/sdk';
@@ -12,7 +13,7 @@ export class MailhooksTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Mailhooks Trigger',
 		name: 'mailhooksTrigger',
-		icon: 'file:mailhooks-logo.png',
+		icon: 'file:mailhooks-logo.svg',
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["event"]}}',
@@ -22,6 +23,12 @@ export class MailhooksTrigger implements INodeType {
 		},
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
+		credentials: [
+			{
+				name: 'mailhooksApi',
+				required: true,
+			},
+		],
 		webhooks: [
 			{
 				name: 'default',
@@ -31,14 +38,6 @@ export class MailhooksTrigger implements INodeType {
 			},
 		],
 		properties: [
-			{
-				displayName: 'Webhook Secret',
-				name: 'webhookSecret',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				description: 'The webhook secret from your Mailhooks dashboard (starts with whsec_). Leave empty to skip signature verification.',
-			},
 			{
 				displayName: 'Event',
 				name: 'event',
@@ -53,6 +52,21 @@ export class MailhooksTrigger implements INodeType {
 				default: 'email.received',
 				description: 'The event to listen for',
 			},
+			{
+				displayName: 'Inbox',
+				name: 'inboxId',
+				type: 'string',
+				default: '',
+				description: 'Restrict this trigger to a specific inbox (leave empty for all inboxes)',
+			},
+			{
+				displayName: 'Webhook Secret',
+				name: 'webhookSecret',
+				type: 'string',
+				typeOptions: { password: true },
+				default: '',
+				description: 'The webhook secret from your Mailhooks dashboard (starts with whsec_). Leave empty to skip signature verification.',
+			},
 		],
 		usableAsTool: true,
 	};
@@ -60,17 +74,83 @@ export class MailhooksTrigger implements INodeType {
 	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
-				// Mailhooks webhooks are configured in the dashboard, not via API
-				// Always return false to show the webhook URL to the user
-				return false;
+				const webhookData = this.getWorkflowStaticData('node');
+				const webhookId = webhookData.mailhooksWebhookId as string | undefined;
+				if (!webhookId) return false;
+
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				try {
+					await this.helpers.httpRequest({
+						method: 'GET',
+						baseURL: baseUrl,
+						url: `/v1/webhooks/${webhookId}`,
+						headers: {
+							'X-API-Key': credentials.apiKey as string,
+						},
+					});
+					return true;
+				} catch {
+					// Webhook no longer exists on Mailhooks side
+					webhookData.mailhooksWebhookId = undefined;
+					return false;
+				}
 			},
+
 			async create(this: IHookFunctions): Promise<boolean> {
-				// Webhooks are configured manually in the Mailhooks dashboard
-				// This method just returns true to proceed
+				const webhookUrl = this.getNodeWebhookUrl('default');
+				const webhookData = this.getWorkflowStaticData('node');
+				const event = this.getNodeParameter('event') as string;
+				const inboxId = this.getNodeParameter('inboxId', '') as string;
+
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				const body: Record<string, string | string[] | undefined> = {
+					url: webhookUrl,
+					events: [event],
+				};
+				if (inboxId) body.inboxId = inboxId;
+
+				const result = await this.helpers.httpRequest({
+					method: 'POST',
+					baseURL: baseUrl,
+					url: '/v1/webhooks',
+					headers: {
+						'X-API-Key': credentials.apiKey as string,
+						'Content-Type': 'application/json',
+					},
+					body,
+				});
+
+				// Store the webhook ID so we can delete it on deactivation
+				webhookData.mailhooksWebhookId = (result as IDataObject).id;
 				return true;
 			},
+
 			async delete(this: IHookFunctions): Promise<boolean> {
-				// Webhooks are managed in the Mailhooks dashboard
+				const webhookData = this.getWorkflowStaticData('node');
+				const webhookId = webhookData.mailhooksWebhookId as string | undefined;
+				if (!webhookId) return true;
+
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				try {
+					await this.helpers.httpRequest({
+						method: 'DELETE',
+						baseURL: baseUrl,
+						url: `/v1/webhooks/${webhookId}`,
+						headers: {
+							'X-API-Key': credentials.apiKey as string,
+						},
+					});
+				} catch {
+					// Webhook may already be deleted — that's fine
+				}
+
+				webhookData.mailhooksWebhookId = undefined;
 				return true;
 			},
 		},

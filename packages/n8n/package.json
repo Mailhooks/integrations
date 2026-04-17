@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-mailhooks",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "n8n community node for Mailhooks - receive, filter, and process emails in your n8n workflows",
   "license": "MIT",
   "homepage": "https://github.com/Mailhooks/integrations#readme",
@@ -33,7 +33,9 @@
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
     "release": "n8n-node release",
-    "prepublishOnly": "n8n-node prerelease"
+    "prepublishOnly": "n8n-node prerelease",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "files": [
     "dist"
@@ -51,13 +53,16 @@
     ]
   },
   "dependencies": {
-    "@mailhooks/sdk": "workspace:*"
+    "@mailhooks/sdk": "^2.6.14"
   },
   "devDependencies": {
     "@n8n/node-cli": "*",
+    "@types/jest": "^30.0.0",
     "eslint": "9.32.0",
+    "jest": "^30.3.0",
     "prettier": "3.6.2",
     "release-it": "^19.0.4",
+    "ts-jest": "^29.4.9",
     "typescript": "5.9.2"
   },
   "peerDependencies": {
