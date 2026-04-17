@@ -1,13 +1,34 @@
-# Mailhooks MCP Server
+# @mailhooks/mcp
 
-An MCP (Model Context Protocol) server that provides tools to interact with the Mailhooks API for listing and reading emails.
+An MCP (Model Context Protocol) server for the Mailhooks API — full coverage for inboxes, emails, webhooks, domains, tenant & usage.
 
-## Features
+## Tools
 
-- **list_emails**: List emails with optional filtering by sender, recipient, or subject
-- **read_email**: Read the full content of a specific email by ID
-- **wait_for_email**: Wait for an email that matches specific filters (useful for testing and automation)
-- **list_domains**: List all domains configured in your Mailhooks account
+| Category | Tool | Description |
+|---|---|---|
+| Inboxes | `list_inboxes` | List inboxes in the tenant |
+| | `get_inbox` | Get details of a specific inbox |
+| | `create_inbox` | Create a new inbox |
+| Emails | `list_emails` | List emails with optional filtering and pagination |
+| | `get_email` | Get full parsed email including body HTML, plain text, and attachment metadata |
+| | `search_emails` | Search emails by querying subject, sender, and recipient |
+| | `download_email` | Download the raw .eml content of an email |
+| | `delete_email` | Permanently delete an email and its attachments |
+| | `mark_as_read` | Mark an email as read |
+| | `mark_as_unread` | Mark an email as unread |
+| | `wait_for_email` | Wait for an email matching filters (useful for testing and automation) |
+| | `list_attachments` | List attachments for an email |
+| | `get_attachment` | Get an attachment content as base64 with MIME type |
+| Webhooks | `list_webhooks` | List webhooks, optionally filtered by inbox |
+| | `get_webhook` | Get details of a specific webhook |
+| | `create_webhook` | Create a new webhook for an inbox |
+| | `update_webhook` | Update a webhook (URL, secret, or enabled status) |
+| | `delete_webhook` | Delete a webhook |
+| Domains | `list_domains` | List all domains in the tenant |
+| | `get_domain` | Get details of a specific domain |
+| | `check_domain_verification` | Check domain DNS verification status |
+| Tenant | `get_tenant` | Get current tenant info |
+| | `get_usage` | Get email/webhook usage and quota for the current period |
 
 ## Installation
 
@@ -19,14 +40,16 @@ npm install -g @mailhooks/mcp
 
 ### Option 2: Use npx (no installation required)
 
-You can run the MCP server directly using npx without installing it globally.
+```bash
+npx @mailhooks/mcp
+```
 
 ## Configuration
 
 ### Required Environment Variables
 
 - `MAILHOOKS_API_KEY` (required): Your Mailhooks API key
-- `MAILHOOKS_API_URL` (optional): API base URL (defaults to https://mailhooks.dev)
+- `MAILHOOKS_API_URL` (optional): API base URL (defaults to `https://app.mailhooks.dev/api/v1`)
 
 ### Getting your API Key
 
@@ -34,14 +57,14 @@ You can run the MCP server directly using npx without installing it globally.
 2. Navigate to Settings → API Keys
 3. Create a new API key or copy an existing one
 
-## Usage with Claude Desktop
+## Usage with AI clients
 
-### Quick Setup with Claude CLI
+### Claude Code
 
 ```bash
 claude mcp add-json mailhooks --scope user '
-  { 
-    "command": "npx", 
+  {
+    "command": "npx",
     "args": ["@mailhooks/mcp"],
     "env": {
       "MAILHOOKS_API_KEY": "mh_your_api_key_here"
@@ -50,15 +73,7 @@ claude mcp add-json mailhooks --scope user '
 '
 ```
 
-### Manual Configuration
-
-Add to your Claude Desktop configuration:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`  
-**Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-#### Using npx (Recommended)
+Or add to `.mcp.json`:
 
 ```json
 {
@@ -74,14 +89,20 @@ Add to your Claude Desktop configuration:
 }
 ```
 
-#### Using global installation
+### Claude Desktop
+
+Add to your Claude Desktop configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "mailhooks": {
-      "command": "mcp-mailhooks",
-      "args": [],
+      "command": "npx",
+      "args": ["@mailhooks/mcp"],
       "env": {
         "MAILHOOKS_API_KEY": "mh_your_api_key_here"
       }
@@ -89,6 +110,35 @@ Add to your Claude Desktop configuration:
   }
 }
 ```
+
+### Cursor
+
+Add to your Cursor MCP settings (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "mailhooks": {
+      "command": "npx",
+      "args": ["@mailhooks/mcp"],
+      "env": {
+        "MAILHOOKS_API_KEY": "mh_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+### SSE transport (remote agents)
+
+For remote agent runners that need HTTP-based access:
+
+```bash
+npx @mailhooks/mcp --transport sse --port 4000
+```
+
+SSE endpoint: `http://localhost:4000/sse`
+POST endpoint: `http://localhost:4000/messages`
 
 ## Development
 
@@ -101,44 +151,15 @@ pnpm build
 
 # Run in development mode
 pnpm dev
+
+# Run tests
+pnpm test
+
+# Type-check
+npx tsc --noEmit
 ```
 
-## Tools
+## Version history
 
-### list_emails
-
-Lists emails from your Mailhooks account.
-
-Parameters:
-- `page` (optional): Page number (default: 1)
-- `perPage` (optional): Items per page (default: 20, max: 100)
-- `from` (optional): Filter by sender email
-- `to` (optional): Filter by recipient email
-- `subject` (optional): Filter by subject (partial match)
-
-### read_email
-
-Reads the full content of a specific email.
-
-Parameters:
-- `emailId` (required): The ID of the email to read
-
-### wait_for_email
-
-Waits for an email that matches specific filters. Useful for testing email flows and automation.
-
-Parameters:
-- `from` (optional): Filter by sender email address
-- `to` (optional): Filter by recipient email address
-- `subject` (optional): Filter by subject (partial match)
-- `lookbackWindow` (optional): How far back to look for emails on first check in ms (default: 10000)
-- `initialDelay` (optional): Delay before starting to poll in ms (default: 0)
-- `timeout` (optional): Maximum time to wait in ms (default: 30000)
-- `pollInterval` (optional): Time between checks in ms (default: 1000)
-- `maxRetries` (optional): Maximum number of polling attempts (default: unlimited)
-
-### list_domains
-
-Lists all domains configured in your Mailhooks account.
-
-No parameters required.
+- **v2.0.0** — Full API coverage: 23 tools across 5 categories, SSE transport, Zod validation, unit tests
+- **v1.0.11** — Initial release: 4 tools (list_emails, read_email, list_domains, wait_for_email)
