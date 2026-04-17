@@ -21,6 +21,8 @@ const createInboxSchema = z.object({ name: z.string() });
 const listEmailsSchema = z.object({
   inboxId: z.string().optional(),
   limit: z.number().optional(),
+  page: z.number().optional(),        // v1 compat alias for limit
+  perPage: z.number().optional(),      // v1 compat alias for limit
   cursor: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
@@ -28,6 +30,9 @@ const listEmailsSchema = z.object({
 });
 
 const getEmailSchema = z.object({ id: z.string() });
+
+// Backward-compatible alias: read_email uses emailId instead of id
+const readEmailSchema = z.object({ emailId: z.string() });
 
 const searchEmailsSchema = z.object({
   query: z.string(),
@@ -130,6 +135,8 @@ const emailTools: Tool[] = [
       properties: {
         inboxId: { type: 'string', description: 'Filter by inbox ID' },
         limit: { type: 'number', description: 'Number of emails per page (default: 20)' },
+        page: { type: 'number', description: 'Page number (default: 1)' },
+        perPage: { type: 'number', description: 'Items per page (default: 20)' },
         cursor: { type: 'string', description: 'Pagination cursor from previous response' },
         from: { type: 'string', description: 'Filter by sender email' },
         to: { type: 'string', description: 'Filter by recipient email' },
@@ -144,6 +151,15 @@ const emailTools: Tool[] = [
       type: 'object',
       properties: { id: { type: 'string', description: 'Email ID' } },
       required: ['id'],
+    },
+  },
+  {
+    name: 'read_email',
+    description: 'Read the full content of a specific email. Alias for get_email (backward compatible).',
+    inputSchema: {
+      type: 'object',
+      properties: { emailId: { type: 'string', description: 'The ID of the email to read' } },
+      required: ['emailId'],
     },
   },
   {
@@ -373,6 +389,8 @@ export class MailhooksMCPServer {
             return await this.handleListEmails(args);
           case 'get_email':
             return await this.handleGetEmail(args);
+          case 'read_email':
+            return await this.handleReadEmail(args);
           case 'search_emails':
             return await this.handleSearchEmails(args);
           case 'download_email':
@@ -456,7 +474,10 @@ export class MailhooksMCPServer {
     const parsed = listEmailsSchema.parse(args);
     const params: Record<string, any> = {};
     if (parsed.inboxId) params.inboxId = parsed.inboxId;
-    if (parsed.limit) params.perPage = parsed.limit;
+    // v1 compat: page/perPage map to API params; v2 limit maps to perPage
+    if (parsed.page) params.page = parsed.page;
+    if (parsed.perPage) params.perPage = parsed.perPage;
+    else if (parsed.limit) params.perPage = parsed.limit;
     if (parsed.cursor) params.cursor = parsed.cursor;
     if (parsed.from) params['filter.from'] = parsed.from;
     if (parsed.to) params['filter.to'] = parsed.to;
@@ -473,6 +494,12 @@ export class MailhooksMCPServer {
     ]);
     const full = { ...metadata, ...(content ?? {}) };
     return { content: [{ type: 'text' as const, text: JSON.stringify(full, null, 2) }] };
+  }
+
+  // Backward-compatible alias: read_email delegates to get_email with emailId→id mapping
+  private async handleReadEmail(args: any) {
+    const parsed = readEmailSchema.parse(args);
+    return this.handleGetEmail({ id: parsed.emailId });
   }
 
   private async handleSearchEmails(args: any) {

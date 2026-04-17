@@ -161,5 +161,20 @@ npx tsc --noEmit
 
 ## Version history
 
-- **v2.0.0** — Full API coverage: 23 tools across 5 categories, SSE transport, Zod validation, unit tests
+- **v2.0.0** — Full API coverage: 23+ tools across 5 categories, SSE transport, Zod validation, unit tests. Backward-compatible: `read_email` (v1 alias) still works alongside `get_email`.
 - **v1.0.11** — Initial release: 4 tools (list_emails, read_email, list_domains, wait_for_email)
+
+### Migrating from v1
+
+v2 is backward compatible with v1:
+
+| v1 Tool | v2 Equivalent | Notes |
+|---------|---------------|-------|
+| `list_emails` | `list_emails` | Same name, now supports `page`/`perPage` (v1 style) and `limit`/`cursor` (v2 style) |
+| `read_email` | `get_email` | `read_email` still works (alias). `get_email` is the new name, uses `id` instead of `emailId` |
+| `list_domains` | `list_domains` | Same name, now returns JSON instead of formatted text |
+| `wait_for_email` | `wait_for_email` | Same name, same params, returns JSON instead of formatted text |
+
+**Other changes:**
+- Default API URL changed from `https://mailhooks.dev` to `https://app.mailhooks.dev/api/v1` — set `MAILHOOKS_API_URL` if you need the old URL
+- Output format changed from human-readable text to JSON — structured data is easier for LLMs to parse

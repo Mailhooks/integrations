@@ -10,6 +10,7 @@ const program = new Command()
   .name('mcp-mailhooks')
   .description('Mailhooks MCP server — full API coverage for AI assistants')
   .version('2.0.0')
+  // v1 compat: --port and --transport flags
   .option(
     '--transport <type>',
     'Transport mode: stdio or sse (default: stdio)',

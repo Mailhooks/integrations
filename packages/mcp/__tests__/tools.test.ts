@@ -91,6 +91,17 @@ describe('MailhooksClient', () => {
     });
   });
 
+  describe('readEmail (v1 compat)', () => {
+    it('calls GET /emails/:id with emailId mapped to id', async () => {
+      mockHttp.get.mockResolvedValue({
+        data: { id: 'email-1', from: 'a@b.com' },
+      });
+      const result = await client.getEmail('email-1');
+      expect(mockHttp.get).toHaveBeenCalledWith('/emails/email-1');
+      expect(result.id).toBe('email-1');
+    });
+  });
+
   describe('getEmailContent', () => {
     it('calls GET /emails/:id/content', async () => {
       mockHttp.get.mockResolvedValue({
