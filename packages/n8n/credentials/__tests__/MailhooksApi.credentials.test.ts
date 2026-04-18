@@ -8,7 +8,7 @@ describe('MailhooksApi credentials', () => {
 
 	it('should have the correct display name', () => {
 		const cred = new MailhooksApi();
-		expect(cred.displayName).toBe('Mailhooks API');
+		expect(cred.displayName).toBe('Mailhooks');
 	});
 
 	it('should define apiKey and baseUrl properties', () => {
