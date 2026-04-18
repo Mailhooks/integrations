@@ -60,12 +60,13 @@ export class MailhooksTrigger implements INodeType {
 				description: 'Restrict this trigger to a specific inbox (leave empty for all inboxes)',
 			},
 			{
-				displayName: 'Webhook Secret',
+				displayName: 'Override Webhook Secret',
 				name: 'webhookSecret',
 				type: 'string',
 				typeOptions: { password: true },
 				default: '',
-				description: 'The webhook secret from your Mailhooks dashboard (starts with whsec_). Leave empty to skip signature verification.',
+				description:
+					'Advanced: override the auto-captured webhook secret. Only needed for pre-existing manually-created webhooks. Leave empty to use the secret returned by the Mailhooks API on webhook creation.',
 			},
 		],
 		usableAsTool: true,
@@ -124,8 +125,10 @@ export class MailhooksTrigger implements INodeType {
 					body,
 				});
 
-				// Store the webhook ID so we can delete it on deactivation
+				// Store the webhook ID and auto-captured secret so we can verify
+				// signatures without requiring the user to paste the secret manually
 				webhookData.mailhooksWebhookId = (result as IDataObject).id;
+				webhookData.mailhooksWebhookSecret = (result as IDataObject).secret;
 				return true;
 			},
 
@@ -151,17 +154,24 @@ export class MailhooksTrigger implements INodeType {
 				}
 
 				webhookData.mailhooksWebhookId = undefined;
+				webhookData.mailhooksWebhookSecret = undefined;
 				return true;
 			},
 		},
 	};
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
-		const webhookSecret = this.getNodeParameter('webhookSecret', '') as string;
+		// Prefer the auto-captured secret from webhook creation, fall back to
+		// the manual "override" field for users with pre-existing webhooks
+		const webhookData = this.getWorkflowStaticData('node') as IDataObject;
+		const autoCapturedSecret = webhookData.mailhooksWebhookSecret as string | undefined;
+		const overrideSecret = this.getNodeParameter('webhookSecret', '') as string;
+		const webhookSecret = autoCapturedSecret || overrideSecret || '';
+
 		const req = this.getRequestObject();
 		const body = req.body;
 
-		// Verify signature if secret is provided
+		// Verify signature if secret is available
 		if (webhookSecret) {
 			const signature = req.headers['x-webhook-signature'] as string;
 			const rawBody = typeof body === 'string' ? body : JSON.stringify(body);

@@ -43,6 +43,12 @@ describe('MailhooksTrigger', () => {
 		expect(propNames).toContain('webhookSecret');
 	});
 
+	it('should label webhookSecret as an override field', () => {
+		const node = new MailhooksTrigger();
+		const secretProp = node.description.properties.find((p) => p.name === 'webhookSecret');
+		expect(secretProp?.displayName).toBe('Override Webhook Secret');
+	});
+
 	it('should have an event parameter with email.received option', () => {
 		const node = new MailhooksTrigger();
 		const eventProp = node.description.properties.find((p) => p.name === 'event');
