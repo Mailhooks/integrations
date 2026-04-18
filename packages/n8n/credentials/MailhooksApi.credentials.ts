@@ -7,9 +7,9 @@ import type {
 
 export class MailhooksApi implements ICredentialType {
 	name = 'mailhooksApi';
-	displayName = 'Mailhooks API';
+	displayName = 'Mailhooks';
 	documentationUrl = 'https://mailhooks.dev/docs';
-	icon = 'file:mailhooks-logo.svg' as const;
+	icon = 'file:mailhooks-logo.png' as const;
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
