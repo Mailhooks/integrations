@@ -93,8 +93,9 @@ export class MailhooksTrigger implements INodeType {
 					});
 					return true;
 				} catch {
-					// Webhook no longer exists on Mailhooks side
+					// Webhook no longer exists on Mailhooks side — clear stale data
 					webhookData.mailhooksWebhookId = undefined;
+					webhookData.mailhooksWebhookSecret = undefined;
 					return false;
 				}
 			},
