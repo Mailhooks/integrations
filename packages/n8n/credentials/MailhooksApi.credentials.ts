@@ -7,7 +7,7 @@ import type {
 
 export class MailhooksApi implements ICredentialType {
 	name = 'mailhooksApi';
-	displayName = 'Mailhooks';
+	displayName = 'Mailhooks'; // eslint-disable-line n8n-nodes-base/cred-class-field-display-name-missing-api
 	documentationUrl = 'https://mailhooks.dev/docs';
 	icon = 'file:mailhooks-logo.png' as const;
 	properties: INodeProperties[] = [
