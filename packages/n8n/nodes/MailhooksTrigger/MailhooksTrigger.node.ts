@@ -185,6 +185,7 @@ export class MailhooksTrigger implements INodeType {
 			filename: att.filename,
 			contentType: att.contentType,
 			size: att.size,
+			...(att.storagePath ? { storagePath: att.storagePath } : {}),
 			...(att.downloadUrl ? { downloadUrl: att.downloadUrl } : {}),
 			...(att.downloadUrlExpiresAt ? { downloadUrlExpiresAt: att.downloadUrlExpiresAt } : {}),
 		}));
