@@ -3,7 +3,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Command } from 'commander';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import express from 'express';
 import { MailhooksMCPServer } from './server.js';
 
 const program = new Command()
@@ -41,7 +41,8 @@ async function startStdio() {
 }
 
 async function startSSE(port: number) {
-  const app = createMcpExpressApp();
+  const app = express();
+  app.use(express.json());
 
   const transports: Map<string, SSEServerTransport> = new Map();
 
