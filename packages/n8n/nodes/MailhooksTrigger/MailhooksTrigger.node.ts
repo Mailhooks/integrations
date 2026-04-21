@@ -1,6 +1,8 @@
 import type {
 	IHookFunctions,
 	IWebhookFunctions,
+	ILoadOptionsFunctions,
+	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookResponseData,
@@ -53,14 +55,42 @@ export class MailhooksTrigger implements INodeType {
 				description: 'The event to listen for',
 			},
 			{
-				displayName: 'Inbox',
+				displayName: 'Inbox Name or ID',
 				name: 'inboxId',
-				type: 'string',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getInboxes' },
 				default: '',
-				description: 'Restrict this trigger to a specific inbox (leave empty for all inboxes)',
+				description: 'Restrict this trigger to a specific inbox (choose All Inboxes for none). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 		],
 		usableAsTool: true,
+	};
+
+	methods = {
+		loadOptions: {
+			async getInboxes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				const response = (await this.helpers.httpRequest({
+					method: 'GET',
+					baseURL: baseUrl,
+					url: '/v1/inboxes',
+					headers: { 'X-API-Key': credentials.apiKey as string },
+				})) as IDataObject;
+
+				const inboxes = (Array.isArray(response) ? response : (response.data as IDataObject[])) ?? [];
+				const options: INodePropertyOptions[] = [{ name: 'All Inboxes', value: '' }];
+				for (const inbox of inboxes) {
+					const name =
+						(inbox.address as string) ||
+						(inbox.addressPrefix as string) ||
+						(inbox.id as string);
+					options.push({ name, value: inbox.id as string });
+				}
+				return options;
+			},
+		},
 	};
 
 	webhookMethods = {

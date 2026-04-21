@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-mailhooks",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "n8n community node for Mailhooks - receive, filter, and process emails in your n8n workflows",
   "license": "MIT",
   "homepage": "https://github.com/Mailhooks/integrations#readme",
