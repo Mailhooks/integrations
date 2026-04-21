@@ -2,14 +2,14 @@
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
 import { Command } from 'commander';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { MailhooksMCPServer } from './server.js';
 
 const program = new Command()
   .name('mcp-mailhooks')
   .description('Mailhooks MCP server — full API coverage for AI assistants')
-  .version('2.0.0')
+  .version('2.0.1')
   // v1 compat: --port and --transport flags
   .option(
     '--transport <type>',
@@ -41,7 +41,8 @@ async function startStdio() {
 }
 
 async function startSSE(port: number) {
-  const app = createMcpExpressApp();
+  const app = express();
+  app.use(express.json());
 
   const transports: Map<string, SSEServerTransport> = new Map();
 
