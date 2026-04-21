@@ -44,13 +44,13 @@ importers:
 
   packages/n8n:
     dependencies:
-      '@mailhooks/sdk':
-        specifier: ^2.6.14
-        version: 2.6.14
       n8n-workflow:
         specifier: '*'
         version: 1.120.7
     devDependencies:
+      '@mailhooks/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@n8n/node-cli':
         specifier: '*'
         version: 0.18.0(@typescript-eslint/utils@8.53.1(eslint@9.32.0(jiti@2.6.1))(typescript@5.9.2))(eslint@9.32.0(jiti@2.6.1))(typescript@5.9.2)
@@ -60,6 +60,9 @@ importers:
       eslint:
         specifier: 9.32.0
         version: 9.32.0(jiti@2.6.1)
+      fast-glob:
+        specifier: ^3.3.3
+        version: 3.3.3
       jest:
         specifier: ^30.3.0
         version: 30.3.0(@types/node@22.19.7)
@@ -71,7 +74,10 @@ importers:
         version: 20.0.0(@types/node@22.19.7)
       ts-jest:
         specifier: ^29.4.9
-        version: 29.4.9(@babel/core@7.29.0)(@jest/transform@30.3.0)(@jest/types@30.3.0)(babel-jest@30.3.0(@babel/core@7.29.0))(jest-util@30.3.0)(jest@30.3.0(@types/node@22.19.7))(typescript@5.9.2)
+        version: 29.4.9(@babel/core@7.29.0)(@jest/transform@30.3.0)(@jest/types@30.3.0)(babel-jest@30.3.0(@babel/core@7.29.0))(esbuild@0.27.2)(jest-util@30.3.0)(jest@30.3.0(@types/node@22.19.7))(typescript@5.9.2)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.2)
       typescript:
         specifier: 5.9.2
         version: 5.9.2
@@ -756,9 +762,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@mailhooks/sdk@2.6.14':
-    resolution: {integrity: sha512-VHLAsRWQGZTHvJ7SLxZaTHi8TgQ3fB5jPsBdoCXo4qhGs4x+8SEzIsfa4QCFUhnRVUKz24WjCja/EJmRUEhPFg==}
 
   '@modelcontextprotocol/sdk@1.25.3':
     resolution: {integrity: sha512-vsAMBMERybvYgKbg/l4L1rhS7VXV1c0CtyJg72vwxONVX0l4ZfKVAnZEWTQixJGTzKnELjQ59e4NbdFDALRiAQ==}
@@ -4644,14 +4647,6 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mailhooks/sdk@2.6.14':
-    dependencies:
-      axios: 1.13.3
-      eventsource: 3.0.7
-      mailparser: 3.9.1
-    transitivePeerDependencies:
-      - debug
-
   '@modelcontextprotocol/sdk@1.25.3(hono@4.11.5)(zod@3.25.67)':
     dependencies:
       '@hono/node-server': 1.19.9(hono@4.11.5)
@@ -6294,7 +6289,7 @@ snapshots:
     dependencies:
       array-union: 2.1.0
       dir-glob: 3.0.1
-      fast-glob: 3.2.12
+      fast-glob: 3.3.3
       ignore: 5.3.2
       merge2: 1.4.1
       slash: 3.0.0
@@ -7848,7 +7843,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-jest@29.4.9(@babel/core@7.29.0)(@jest/transform@30.3.0)(@jest/types@30.3.0)(babel-jest@30.3.0(@babel/core@7.29.0))(jest-util@30.3.0)(jest@30.3.0(@types/node@22.19.7))(typescript@5.9.2):
+  ts-jest@29.4.9(@babel/core@7.29.0)(@jest/transform@30.3.0)(@jest/types@30.3.0)(babel-jest@30.3.0(@babel/core@7.29.0))(esbuild@0.27.2)(jest-util@30.3.0)(jest@30.3.0(@types/node@22.19.7))(typescript@5.9.2):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
@@ -7866,6 +7861,7 @@ snapshots:
       '@jest/transform': 30.3.0
       '@jest/types': 30.3.0
       babel-jest: 30.3.0(@babel/core@7.29.0)
+      esbuild: 0.27.2
       jest-util: 30.3.0
 
   ts-morph@26.0.0:
@@ -7874,6 +7870,34 @@ snapshots:
       code-block-writer: 13.0.3
 
   tslib@2.8.1: {}
+
+  tsup@8.5.1(jiti@2.6.1)(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.2):
+    dependencies:
+      bundle-require: 5.1.0(esbuild@0.27.2)
+      cac: 6.7.14
+      chokidar: 4.0.3
+      consola: 3.4.2
+      debug: 4.4.3(supports-color@8.1.1)
+      esbuild: 0.27.2
+      fix-dts-default-cjs-exports: 1.0.1
+      joycon: 3.1.1
+      picocolors: 1.1.1
+      postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.10)(tsx@4.21.0)
+      resolve-from: 5.0.0
+      rollup: 4.56.0
+      source-map: 0.7.6
+      sucrase: 3.35.1
+      tinyexec: 0.3.2
+      tinyglobby: 0.2.15
+      tree-kill: 1.2.2
+    optionalDependencies:
+      postcss: 8.5.10
+      typescript: 5.9.2
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
+      - tsx
+      - yaml
 
   tsup@8.5.1(jiti@2.6.1)(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3):
     dependencies:

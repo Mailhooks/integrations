@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+### Changed
+
+- **Build system**: switched from `n8n-node build` (tsc) to `tsup`. All runtime dependencies (`@mailhooks/sdk`, `axios`, `eventsource`, `mailparser`) are now bundled into the published artifact, leaving only `n8n-workflow` as a peer dependency. This is a prerequisite for n8n verified community node submission, which requires zero runtime dependencies.
+- `@mailhooks/sdk` moved from `dependencies` to `devDependencies` (`workspace:*`) since it is now bundled.
+
+### Fixed
+
+- Credential display name test now matches the renamed `"Mailhooks"` credential.
+
 ## 0.2.0
 
 ### Added
