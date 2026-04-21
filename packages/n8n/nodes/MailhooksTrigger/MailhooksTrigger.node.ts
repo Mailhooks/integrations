@@ -59,14 +59,6 @@ export class MailhooksTrigger implements INodeType {
 				default: '',
 				description: 'Restrict this trigger to a specific inbox (leave empty for all inboxes)',
 			},
-			{
-				displayName: 'Webhook Secret',
-				name: 'webhookSecret',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				description: 'The webhook secret from your Mailhooks dashboard (starts with whsec_). Leave empty to skip signature verification.',
-			},
 		],
 		usableAsTool: true,
 	};
@@ -94,6 +86,7 @@ export class MailhooksTrigger implements INodeType {
 				} catch {
 					// Webhook no longer exists on Mailhooks side
 					webhookData.mailhooksWebhookId = undefined;
+					webhookData.mailhooksWebhookSecret = undefined;
 					return false;
 				}
 			},
@@ -113,7 +106,7 @@ export class MailhooksTrigger implements INodeType {
 				};
 				if (inboxId) body.inboxId = inboxId;
 
-				const result = await this.helpers.httpRequest({
+				const result = (await this.helpers.httpRequest({
 					method: 'POST',
 					baseURL: baseUrl,
 					url: '/v1/webhooks',
@@ -122,10 +115,10 @@ export class MailhooksTrigger implements INodeType {
 						'Content-Type': 'application/json',
 					},
 					body,
-				});
+				})) as IDataObject;
 
-				// Store the webhook ID so we can delete it on deactivation
-				webhookData.mailhooksWebhookId = (result as IDataObject).id;
+				webhookData.mailhooksWebhookId = result.id;
+				webhookData.mailhooksWebhookSecret = result.secret;
 				return true;
 			},
 
@@ -151,13 +144,15 @@ export class MailhooksTrigger implements INodeType {
 				}
 
 				webhookData.mailhooksWebhookId = undefined;
+				webhookData.mailhooksWebhookSecret = undefined;
 				return true;
 			},
 		},
 	};
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
-		const webhookSecret = this.getNodeParameter('webhookSecret', '') as string;
+		const webhookData = this.getWorkflowStaticData('node');
+		const webhookSecret = webhookData.mailhooksWebhookSecret as string | undefined;
 		const req = this.getRequestObject();
 		const body = req.body;
 

@@ -37,10 +37,10 @@ describe('MailhooksTrigger', () => {
 		expect(webhook.path).toBe('webhook');
 	});
 
-	it('should have a webhookSecret parameter', () => {
+	it('should not expose a webhookSecret parameter to users', () => {
 		const node = new MailhooksTrigger();
 		const propNames = node.description.properties.map((p) => p.name);
-		expect(propNames).toContain('webhookSecret');
+		expect(propNames).not.toContain('webhookSecret');
 	});
 
 	it('should have an event parameter with email.received option', () => {
