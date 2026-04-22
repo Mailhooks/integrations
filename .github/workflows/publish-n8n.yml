@@ -89,7 +89,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           startsWith(github.ref, 'refs/tags/') ||
           (github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true')
-        run: pnpm --filter n8n-nodes-mailhooks publish --access public --no-git-checks --ignore-scripts
+        run: pnpm --filter n8n-nodes-mailhooks publish --access public --no-git-checks --ignore-scripts --provenance
 
       - name: Create git tag for version
         if: github.event_name == 'push' && steps.version_check.outputs.should_publish == 'true'

@@ -84,7 +84,7 @@ jobs:
           npm version "$INPUT_VERSION" --no-git-tag-version
 
       - name: Publish to npm
-        run: pnpm --filter @mailhooks/mcp publish --access public --no-git-checks
+        run: pnpm --filter @mailhooks/mcp publish --access public --no-git-checks --provenance
 
       - name: Create git tag for version
         if: github.event_name == 'push'
