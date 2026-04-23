@@ -1,6 +1,6 @@
 {
   "name": "@mailhooks/cli",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Command-line interface for the Mailhooks email platform, designed for agentic systems",
   "license": "MIT",
   "repository": {

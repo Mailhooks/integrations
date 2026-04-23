@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- New `mailhooks listen` command — connects to the Mailhooks SSE real-time stream and forwards email events to a local webhook endpoint, like `stripe listen --forward-to`.
+  - `-f, --forward-to <url>` — local URL to forward events to (default `http://localhost:3000/webhooks`)
+  - `--mode <broadcast|distributed>` — SSE connection mode
+  - `--secret <whsec_...>` — adds `X-Webhook-Signature` header (HMAC-SHA256) so local servers can verify with the SDK's `verifyWebhookSignature()`
+  - `--no-reconnect` / `--reconnect-delay <ms>` — reconnect control
+  - `--print` / `--no-print` — stdout output control (auto-on in TTY)
+  - Forwards match the real `WebhookPayload` DTO (id, from, to, subject, body, html, attachments, receivedAt, spfResult, dkimResult, dmarcResult, authSummary, usesCustomStorage)
+  - Graceful shutdown on Ctrl+C with event stats
+
 ## 0.2.1
 
 - Add `"license": "MIT"` to `package.json` so the npm listing reflects the licence shipped in the tarball (the root `LICENSE` was already included).
