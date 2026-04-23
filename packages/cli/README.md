@@ -57,6 +57,7 @@ The CLI is intended to be called from agentic systems (LLM tool loops, scripts, 
 - `mailhooks emails download-eml <id>`
 - `mailhooks emails download-attachment <emailId> <attachmentId>`
 - `mailhooks parse-eml [file]` — parse an EML file (path or stdin) into JSON
+- `mailhooks listen` — forward real-time email events to a local webhook (like `stripe listen`)
 
 Run `mailhooks --help` or `mailhooks <command> --help` for full flag lists.
 
@@ -72,6 +73,29 @@ Run `mailhooks --help` or `mailhooks <command> --help` for full flag lists.
 Global flags: `--pretty` / `--no-pretty` (format JSON — defaults to pretty on a TTY, compact when piped), `--help`, `--version`.
 
 Stored config lives at `~/.config/mailhooks/config.json` (mode `0600`). See [AGENTS.md](./AGENTS.md#configuration) for the full security note.
+
+## listen
+
+Forward real-time email events to a local webhook endpoint — like the Stripe CLI's `stripe listen` or ngrok, but for Mailhooks.
+
+```bash
+# Forward all email events to localhost:3000/webhooks
+mailhooks listen
+
+# Custom endpoint
+mailhooks listen -f http://localhost:8080/api/webhooks
+
+# With webhook signature (so your server can verify X-Webhook-Signature)
+mailhooks listen --secret whsec_dev_secret
+
+# Distributed mode (load-balanced SSE — only one listener gets each event)
+mailhooks listen --mode distributed
+
+# Quiet mode (no stdout, just forwarding)
+mailhooks listen --no-print
+```
+
+The CLI connects to Mailhooks via SSE. Each `email.received` or `email.updated` event is POSTed to your local URL as JSON with headers `Content-Type`, `X-Mailhooks-Event`, and optionally `X-Webhook-Signature`.
 
 ## License
 

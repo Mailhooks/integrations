@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerEmailCommands } from './commands/emails.js';
+import { registerListenCommand } from './commands/listen.js';
 import { registerParseEmlCommand } from './commands/parseEml.js';
 import { registerProfileCommands } from './commands/profiles.js';
 
@@ -23,6 +24,7 @@ registerAuthCommands(program);
 registerProfileCommands(program);
 registerEmailCommands(program);
 registerParseEmlCommand(program);
+registerListenCommand(program);
 
 try {
   await program.parseAsync(process.argv);

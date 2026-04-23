@@ -229,6 +229,71 @@ cat msg.eml | mailhooks parse-eml
 
 Output: `{ from, to[], subject, body, html?, attachments[], headers, date? }`.
 
+### `listen`
+
+Listen for real-time email events via Server-Sent Events (SSE) and forward them to a local webhook endpoint — like the Stripe CLI's `stripe listen` or ngrok, but for Mailhooks.
+
+```bash
+# Basic: forward all email events to localhost:3000/webhooks
+mailhooks listen
+
+# Custom endpoint
+mailhooks listen --forward-to http://localhost:8080/api/mailhooks
+
+# With webhook signature verification (your server can verify X-Webhook-Signature)
+mailhooks listen --secret whsec_your_webhook_secret
+
+# Distributed mode (for load-balancing across multiple listeners)
+mailhooks listen --mode distributed --forward-to http://localhost:4000/hooks
+
+# Suppress stdout output (pipe-friendly)
+mailhooks listen --no-print --forward-to http://localhost:3000/webhooks
+```
+
+**How it works:**
+
+1. Connects to the Mailhooks SSE stream using your API key.
+2. On each `email.received` or `email.updated` event, POSTs a JSON payload to your local endpoint.
+3. The forwarded request body is `{ type, data, timestamp }` where `type` is the event type and `data` is the event payload.
+4. If `--secret` is provided, each forward includes an `X-Webhook-Signature` header containing the HMAC-SHA256 of the body — your server can verify it with `verifyWebhookSignature()` from `@mailhooks/sdk`.
+5. Runs until you press Ctrl+C. Prints connection status and per-event logs to stderr; optionally emits the event JSON to stdout (on by default in a TTY).
+
+**Flags:**
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-f, --forward-to <url>` | `http://localhost:3000/webhooks` | Local URL to forward events to |
+| `--mode <mode>` | `broadcast` | SSE mode: `broadcast` (all events) or `distributed` (load-balanced) |
+| `--no-reconnect` | (reconnect on) | Disable automatic reconnection |
+| `--reconnect-delay <ms>` | `5000` | Delay between reconnection attempts |
+| `--secret <secret>` | — | Webhook signing secret. Adds `X-Webhook-Signature` header to forwards |
+| `--print` | auto (TTY=on) | Print event JSON to stdout |
+| `--no-print` | — | Suppress event JSON output |
+
+**Forwarded request format:**
+
+```json
+{
+  "type": "email.received",
+  "data": { "id": "...", "from": "...", "to": ["..."], "subject": "...", ... },
+  "timestamp": "2025-01-15T10:30:00.000Z"
+}
+```
+
+Headers: `Content-Type: application/json`, `X-Mailhooks-Event: email.received`, plus `X-Webhook-Signature` if `--secret` is set.
+
+**Usage pattern — local dev with Next.js:**
+
+```bash
+# Terminal 1: your app
+npm run dev
+
+# Terminal 2: forward Mailhooks events
+mailhooks listen --forward-to http://localhost:3000/api/mailhooks/webhook --secret whsec_dev_secret
+
+# Your /api/mailhooks/webhook route receives real Mailhooks events locally
+```
+
 ## Patterns
 
 **Wait for a one-time code, extract it, move on:**
