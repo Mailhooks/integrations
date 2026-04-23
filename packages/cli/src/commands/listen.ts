@@ -1,7 +1,12 @@
 import http from 'node:http';
 import { URL } from 'node:url';
 import type { Command } from 'commander';
-import { Mailhooks, RealtimeEventType, type EmailReceivedPayload, type EmailUpdatedPayload } from '@mailhooks/sdk';
+import {
+  Mailhooks,
+  RealtimeEventType,
+  type EmailReceivedPayload,
+  type EmailUpdatedPayload,
+} from '@mailhooks/sdk';
 import { resolveCredentials, DEFAULT_BASE_URL } from '../client.js';
 import { emit, fail } from '../output.js';
 
@@ -70,9 +75,37 @@ export function registerListenCommand(program: Command): void {
       if (flags.secret) process.stderr.write(`  Signing: enabled (X-Webhook-Signature)\n`);
       process.stderr.write(`\n  Ready. Waiting for events...\n\n`);
 
+      // Build a WebhookPayload-compatible body from an email ID.
+      // Fetches the email metadata + content from the API so the forwarded
+      // payload matches what a real Mailhooks webhook would send.
+      async function buildWebhookPayload(emailId: string): Promise<Record<string, unknown>> {
+        const [email, content] = await Promise.all([
+          mailhooks.emails.getEmail(emailId),
+          mailhooks.emails.getContent(emailId),
+        ]);
+
+        return {
+          id: email.id,
+          from: email.from,
+          to: email.to,
+          subject: email.subject,
+          body: content.text ?? '',
+          html: content.html,
+          attachments: (email as any).attachments ?? [],
+          receivedAt: email.createdAt instanceof Date
+            ? email.createdAt.toISOString()
+            : String(email.createdAt),
+          spfResult: (email as any).spfResult,
+          dkimResult: (email as any).dkimResult,
+          dmarcResult: (email as any).dmarcResult,
+          authSummary: (email as any).authSummary,
+          usesCustomStorage: (email as any).usesCustomStorage ?? false,
+        };
+      }
+
       // Forward event to local webhook
       async function forwardEvent(eventType: string, payload: unknown): Promise<boolean> {
-        const body = JSON.stringify({ type: eventType, data: payload, timestamp: new Date().toISOString() });
+        const body = JSON.stringify(payload);
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
@@ -123,23 +156,33 @@ export function registerListenCommand(program: Command): void {
           const summary = `${payload.from} → ${payload.to.join(', ')} | ${payload.subject}`;
           process.stderr.write(`  📧 [${new Date().toISOString()}] email.received: ${summary}\n`);
 
-          if (shouldPrint) {
-            emit({ type: 'email.received', data: payload }, { pretty: true });
-          }
+          try {
+            // Fetch full email + content to build a real WebhookPayload
+            const webhookPayload = await buildWebhookPayload(payload.id);
 
-          const ok = await forwardEvent('email.received', payload);
-          if (ok) {
-            eventsForwarded++;
-            process.stderr.write(`    → Forwarded to ${flags.forwardTo} [200]\n`);
-          } else {
+            if (shouldPrint) {
+              emit({ type: 'email.received', data: webhookPayload }, { pretty: true });
+            }
+
+            const ok = await forwardEvent('email.received', webhookPayload);
+            if (ok) {
+              eventsForwarded++;
+              process.stderr.write(`    → Forwarded to ${flags.forwardTo} [200]\n`);
+            } else {
+              eventsFailed++;
+              process.stderr.write(`    → Failed to forward to ${flags.forwardTo}\n`);
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            process.stderr.write(`    ⚠ Error processing event: ${msg}\n`);
             eventsFailed++;
-            process.stderr.write(`    → Failed to forward to ${flags.forwardTo}\n`);
           }
         },
         onEmailUpdated: async (payload: EmailUpdatedPayload) => {
           eventsReceived++;
           process.stderr.write(`  ✏️  [${new Date().toISOString()}] email.updated: ${payload.id} (${JSON.stringify(payload.changes)})\n`);
 
+          // email.updated is lighter — just forward the SSE payload as-is
           if (shouldPrint) {
             emit({ type: 'email.updated', data: payload }, { pretty: true });
           }
@@ -154,7 +197,7 @@ export function registerListenCommand(program: Command): void {
           }
         },
         onHeartbeat: () => {
-          // Heartbeats are kept internal — no forwarding, just a subtle log
+          // Heartbeats are internal — no forwarding, just a subtle keepalive
         },
         onError: (error) => {
           process.stderr.write(`  ⚠ SSE error: ${error.message}\n`);
