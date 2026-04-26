@@ -25,6 +25,10 @@ export interface WebhookPayload {
     size: number;
     /** Storage path for the attachment (only present when usesCustomStorage is true) */
     storagePath?: string;
+    /** Short-lived signed URL to download the attachment directly (~1h expiry) */
+    downloadUrl?: string;
+    /** ISO 8601 timestamp when downloadUrl expires */
+    downloadUrlExpiresAt?: string;
   }>;
   /** ISO 8601 timestamp when the email was received */
   receivedAt: string;

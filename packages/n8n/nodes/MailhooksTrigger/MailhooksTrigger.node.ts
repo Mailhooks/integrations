@@ -204,6 +204,17 @@ export class MailhooksTrigger implements INodeType {
 		// Parse the webhook payload
 		const payload = typeof body === 'string' ? parseWebhookPayload(body) : body;
 
+		// Map attachments to include download URLs when provided by the webhook
+		const attachments = (payload.attachments ?? []).map((att: IDataObject) => ({
+			id: att.id,
+			filename: att.filename,
+			contentType: att.contentType,
+			size: att.size,
+			...(att.storagePath ? { storagePath: att.storagePath } : {}),
+			...(att.downloadUrl ? { downloadUrl: att.downloadUrl } : {}),
+			...(att.downloadUrlExpiresAt ? { downloadUrlExpiresAt: att.downloadUrlExpiresAt } : {}),
+		}));
+
 		return {
 			workflowData: [
 				[
@@ -215,7 +226,7 @@ export class MailhooksTrigger implements INodeType {
 							subject: payload.subject,
 							body: payload.body,
 							html: payload.html,
-							attachments: payload.attachments,
+							attachments,
 							receivedAt: payload.receivedAt,
 							spfResult: payload.spfResult,
 							dkimResult: payload.dkimResult,
