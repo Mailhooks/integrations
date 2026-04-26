@@ -36,7 +36,7 @@ export class MailhooksTrigger implements INodeType {
 				name: 'default',
 				httpMethod: 'POST',
 				responseMode: 'onReceived',
-				path: 'webhook',
+				path: 'mailhooks',
 			},
 		],
 		properties: [

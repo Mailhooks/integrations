@@ -34,7 +34,7 @@ describe('MailhooksTrigger', () => {
 		expect(webhook.name).toBe('default');
 		expect(webhook.httpMethod).toBe('POST');
 		expect(webhook.responseMode).toBe('onReceived');
-		expect(webhook.path).toBe('webhook');
+		expect(webhook.path).toBe('mailhooks');
 	});
 
 	it('should not expose a webhookSecret parameter to users', () => {
