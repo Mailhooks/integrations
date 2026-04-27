@@ -4,6 +4,9 @@ import type {
 	INodeTypeDescription,
 	IDataObject,
 	IWebhookResponseData,
+	ILoadOptionsFunctions,
+	INodePropertyOptions,
+	IHttpRequestOptions,
 } from 'n8n-workflow';
 
 async function verifyWebhookSignature(
@@ -69,11 +72,14 @@ export class MailhooksTrigger implements INodeType {
 				description: 'Events to listen for',
 			},
 			{
-				displayName: 'Inbox ID',
+				displayName: 'Inbox Name or ID',
 				name: 'inboxId',
-				type: 'string',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getInboxes',
+				},
 				default: '',
-				description: 'Optional: only trigger for emails in a specific inbox',
+				description: 'Optional: only trigger for emails in a specific inbox. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Verify Signature',
@@ -84,6 +90,37 @@ export class MailhooksTrigger implements INodeType {
 			},
 		],
 		usableAsTool: true,
+	};
+
+	methods = {
+		loadOptions: {
+			async getInboxes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				const options: IHttpRequestOptions = {
+					method: 'GET',
+					url: `${baseUrl}/v1/inboxes`,
+				};
+
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'mailhooksApi',
+					options,
+				);
+
+				const inboxes = response?.data ?? response;
+				const inboxList = Array.isArray(inboxes) ? inboxes : [];
+
+				return inboxList.map(
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(inbox: any) => ({
+						name: `${inbox.name} (${inbox.address})`,
+						value: inbox.id,
+					}),
+				);
+			},
+		},
 	};
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {

@@ -5,6 +5,8 @@ import type {
 	INodeTypeDescription,
 	IDataObject,
 	IHttpRequestOptions,
+	ILoadOptionsFunctions,
+	INodePropertyOptions,
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
@@ -154,9 +156,11 @@ export class Mailhooks implements INodeType {
 				default: 'list',
 			},
 			{
-				displayName: 'Inbox ID', name: 'inboxId', type: 'string', required: true, default: '',
+				displayName: 'Inbox Name or ID', name: 'inboxId', type: 'options',
+				typeOptions: { loadOptionsMethod: 'getInboxes' },
+				required: true, default: '',
 				displayOptions: { show: { resource: ['inbox'], operation: ['get'] } },
-				description: 'The ID of the inbox',
+				description: 'The ID of the inbox. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Inbox Name', name: 'inboxName', type: 'string', required: true, default: '',
@@ -200,9 +204,11 @@ export class Mailhooks implements INodeType {
 				description: 'Events to subscribe to',
 			},
 			{
-				displayName: 'Inbox ID', name: 'webhookInboxId', type: 'string', default: '',
+				displayName: 'Inbox Name or ID', name: 'webhookInboxId', type: 'options',
+				typeOptions: { loadOptionsMethod: 'getInboxes' },
+				default: '',
 				displayOptions: { show: { resource: ['webhook'], operation: ['create', 'update'] } },
-				description: 'Restrict the webhook to a specific inbox',
+				description: 'Restrict the webhook to a specific inbox. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Update Fields', name: 'webhookUpdateFields', type: 'collection', placeholder: 'Add Field', default: {},
@@ -239,6 +245,37 @@ export class Mailhooks implements INodeType {
 				description: 'Your webhook secret (starts with whsec_)',
 			},
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getInboxes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				const options: IHttpRequestOptions = {
+					method: 'GET',
+					url: `${baseUrl}/v1/inboxes`,
+				};
+
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'mailhooksApi',
+					options,
+				);
+
+				const inboxes = response?.data ?? response;
+				const inboxList = Array.isArray(inboxes) ? inboxes : [];
+
+				return inboxList.map(
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(inbox: any) => ({
+						name: `${inbox.name} (${inbox.address})`,
+						value: inbox.id,
+					}),
+				);
+			},
+		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {

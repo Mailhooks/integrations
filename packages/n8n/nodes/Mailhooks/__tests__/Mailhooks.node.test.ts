@@ -139,6 +139,24 @@ describe('Mailhooks action node', () => {
 		});
 	});
 
+	describe('Dynamic loading', () => {
+		it('should have inboxId parameter with dynamic inbox loading', () => {
+			const node = new Mailhooks();
+			const inboxIdProp = node.description.properties.find((p) => p.name === 'inboxId');
+			expect(inboxIdProp).toBeDefined();
+			expect(inboxIdProp?.type).toBe('options');
+			expect((inboxIdProp?.typeOptions as { loadOptionsMethod?: string })?.loadOptionsMethod).toBe('getInboxes');
+		});
+
+		it('should have webhookInboxId parameter with dynamic inbox loading', () => {
+			const node = new Mailhooks();
+			const webhookInboxIdProp = node.description.properties.find((p) => p.name === 'webhookInboxId');
+			expect(webhookInboxIdProp).toBeDefined();
+			expect(webhookInboxIdProp?.type).toBe('options');
+			expect((webhookInboxIdProp?.typeOptions as { loadOptionsMethod?: string })?.loadOptionsMethod).toBe('getInboxes');
+		});
+	});
+
 	describe('Field visibility', () => {
 		it('should show emailId for relevant email operations', () => {
 			const node = new Mailhooks();

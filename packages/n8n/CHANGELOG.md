@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+
+### Changed
+
+- Inbox ID fields on trigger and action nodes now dynamically load inboxes from the API as a dropdown (shows name + address)
+- Display names follow n8n convention for dynamic options ("Inbox Name or ID")
+
 ## 0.6.1
 
 ### Added
