@@ -51,7 +51,7 @@ describe('Mailhooks action node', () => {
 	});
 
 	describe('Email operations', () => {
-		it('should have all 9 email operations', () => {
+		it('should have all 7 email operations', () => {
 			const node = new Mailhooks();
 			const emailOpProp = node.description.properties.find(
 				(p) =>
@@ -69,7 +69,6 @@ describe('Mailhooks action node', () => {
 			expect(opValues).toContain('list');
 			expect(opValues).toContain('markAsRead');
 			expect(opValues).toContain('markAsUnread');
-			expect(opValues).toContain('waitFor');
 		});
 	});
 
@@ -126,7 +125,7 @@ describe('Mailhooks action node', () => {
 	});
 
 	describe('Utility operations', () => {
-		it('should have Parse EML and Verify Webhook operations', () => {
+		it('should have Verify Webhook operation', () => {
 			const node = new Mailhooks();
 			const utilOpProp = node.description.properties.find(
 				(p) =>
@@ -136,7 +135,6 @@ describe('Mailhooks action node', () => {
 					),
 			);
 			const opValues = (utilOpProp?.options as Array<{ value: string }>).map((o) => o.value);
-			expect(opValues).toContain('parseEml');
 			expect(opValues).toContain('verifyWebhook');
 		});
 	});

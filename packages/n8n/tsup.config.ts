@@ -12,13 +12,14 @@ export default defineConfig({
 	],
 	outDir: 'dist',
 	format: ['cjs'],
-	target: 'node20',
+	target: 'es2022',
 	clean: true,
 	sourcemap: false,
 	splitting: false,
 	dts: false,
+	platform: 'browser',
 	external: ['n8n-workflow'],
-	noExternal: ['@mailhooks/sdk', 'axios', 'eventsource', 'mailparser'],
+	noExternal: [],
 	outExtension: () => ({ js: '.js' }),
 	esbuildOptions(options) {
 		options.outbase = '.';

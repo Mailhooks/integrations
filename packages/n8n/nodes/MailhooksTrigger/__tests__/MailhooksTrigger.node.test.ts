@@ -33,8 +33,7 @@ describe('MailhooksTrigger', () => {
 		const webhook = node.description.webhooks![0];
 		expect(webhook.name).toBe('default');
 		expect(webhook.httpMethod).toBe('POST');
-		expect(webhook.responseMode).toBe('onReceived');
-		expect(webhook.path).toBe('webhook');
+		expect(webhook.path).toBe('mailhooks-webhook');
 	});
 
 	it('should not expose a webhookSecret parameter to users', () => {
@@ -43,29 +42,32 @@ describe('MailhooksTrigger', () => {
 		expect(propNames).not.toContain('webhookSecret');
 	});
 
-	it('should have an event parameter with email.received option', () => {
+	it('should have an events parameter with email.received option', () => {
 		const node = new MailhooksTrigger();
-		const eventProp = node.description.properties.find((p) => p.name === 'event');
+		const eventProp = node.description.properties.find((p) => p.name === 'events');
 		expect(eventProp).toBeDefined();
-		expect(eventProp?.type).toBe('options');
+		expect(eventProp?.type).toBe('multiOptions');
 		const optionValues = (eventProp?.options as Array<{ name: string; value: string }>).map(
 			(o) => o.value,
 		);
 		expect(optionValues).toContain('email.received');
 	});
 
-	it('should default event to email.received', () => {
+	it('should default events to email.received', () => {
 		const node = new MailhooksTrigger();
-		const eventProp = node.description.properties.find((p) => p.name === 'event');
-		expect(eventProp?.default).toBe('email.received');
+		const eventProp = node.description.properties.find((p) => p.name === 'events');
+		expect(eventProp?.default).toContain('email.received');
 	});
 
-	it('should implement webhookMethods', () => {
+	it('should have a verifySignature parameter defaulting to true', () => {
 		const node = new MailhooksTrigger();
-		expect(node.webhookMethods).toBeDefined();
-		expect(node.webhookMethods.default).toBeDefined();
-		expect(typeof node.webhookMethods.default.checkExists).toBe('function');
-		expect(typeof node.webhookMethods.default.create).toBe('function');
-		expect(typeof node.webhookMethods.default.delete).toBe('function');
+		const verifyProp = node.description.properties.find((p) => p.name === 'verifySignature');
+		expect(verifyProp).toBeDefined();
+		expect(verifyProp?.default).toBe(true);
+	});
+
+	it('should have a webhook method', () => {
+		const node = new MailhooksTrigger();
+		expect(typeof node.webhook).toBe('function');
 	});
 });

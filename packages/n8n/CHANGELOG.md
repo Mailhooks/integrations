@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0
+
+### Changed
+
+- **Removed `@mailhooks/sdk` entirely** — bundling via tsup still triggered n8n Cloud scanner failures because bundled code references Node.js built-ins (`http`, `crypto`, `stream`). The scanner inspects the published dist, not the source, so inlining deps doesn't help.
+- All API calls now use `this.helpers.httpRequestWithAuthentication` instead of the SDK client.
+- HMAC webhook signature verification migrated from Node `crypto` to Web Crypto API (`crypto.subtle`).
+- Credential class uses `authenticate` property with `X-API-Key` header and test request hitting `/v1/inboxes`.
+- MailhooksTrigger uses a plain `webhook()` handler instead of `webhookMethods` (no auto-subscribe lifecycle).
+- Event parameter renamed from `event` (single option) to `events` (multiOptions) in MailhooksTrigger.
+- Tests updated to match post-rewrite implementation (43 passing).
+
+### Removed
+
+- `waitFor` email operation — relied on SDK polling helper; use the Mailhooks Polling Trigger node instead.
+- `parseEml` operation — required `mailparser` which brings Node built-in deps incompatible with n8n Cloud.
+- `webhookMethods` from MailhooksTrigger node.
+
 ## 0.3.0
 
 ### Changed

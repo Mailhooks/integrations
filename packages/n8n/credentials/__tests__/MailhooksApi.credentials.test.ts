@@ -30,18 +30,17 @@ describe('MailhooksApi credentials', () => {
 		expect(baseUrlProp?.default).toBe('https://mailhooks.dev/api');
 	});
 
-	it('should use x-api-key header authentication', () => {
+	it('should use generic authentication with X-API-Key header', () => {
 		const cred = new MailhooksApi();
 		expect(cred.authenticate.type).toBe('generic');
 		expect(cred.authenticate.properties).toHaveProperty('headers');
-		expect(cred.authenticate.properties.headers).toHaveProperty('x-api-key');
+		expect(cred.authenticate.properties.headers).toHaveProperty('X-API-Key');
 	});
 
-	it('should have a test request that hits the emails endpoint', () => {
+	it('should have a test request that hits the inboxes endpoint', () => {
 		const cred = new MailhooksApi();
 		expect(cred.test).toBeDefined();
-		expect(cred.test?.request?.method).toBe('GET');
-		expect(cred.test?.request?.url).toBe('/v1/emails?perPage=1');
+		expect(cred.test?.request?.url).toBe('/v1/inboxes');
 	});
 
 	it('should reference baseUrl in the test request', () => {

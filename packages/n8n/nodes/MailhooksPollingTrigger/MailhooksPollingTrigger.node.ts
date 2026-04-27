@@ -3,9 +3,9 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 	INodeExecutionData,
+	IDataObject,
+	IHttpRequestOptions,
 } from 'n8n-workflow';
-import { NodeConnectionTypes, NodeApiError } from 'n8n-workflow';
-import { Mailhooks as MailhooksSDK, type Email } from '@mailhooks/sdk';
 
 export class MailhooksPollingTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -14,50 +14,25 @@ export class MailhooksPollingTrigger implements INodeType {
 		icon: 'file:mailhooks-logo.svg',
 		group: ['trigger'],
 		version: 1,
-		subtitle: 'Poll for new emails',
-		description: 'Starts the workflow when new emails are received (polling)',
-		defaults: {
-			name: 'Mailhooks Polling Trigger',
-		},
-		credentials: [
-			{
-				name: 'mailhooksApi',
-				required: true,
-			},
-		],
-		polling: true,
+		description: 'Poll Mailhooks for new emails',
+		defaults: { name: 'Mailhooks Polling Trigger' },
 		inputs: [],
-		outputs: [NodeConnectionTypes.Main],
+		outputs: ['main'],
+		credentials: [{ name: 'mailhooksApi', required: true }],
 		properties: [
 			{
-				displayName: 'Filter Options',
-				name: 'filterOptions',
-				type: 'collection',
-				placeholder: 'Add Filter',
-				default: {},
-				options: [
-					{
-						displayName: 'From',
-						name: 'from',
-						type: 'string',
-						default: '',
-						description: 'Filter emails by sender address (partial match)',
-					},
-					{
-						displayName: 'To',
-						name: 'to',
-						type: 'string',
-						default: '',
-						description: 'Filter emails by recipient address (partial match)',
-					},
-					{
-						displayName: 'Subject',
-						name: 'subject',
-						type: 'string',
-						default: '',
-						description: 'Filter emails by subject (partial match)',
-					},
-				],
+				displayName: 'Inbox ID',
+				name: 'inboxId',
+				type: 'string',
+				default: '',
+				description: 'Optional: poll only a specific inbox',
+			},
+			{
+				displayName: 'Poll Interval (Seconds)',
+				name: 'pollInterval',
+				type: 'number',
+				default: 30,
+				description: 'How often to check for new emails',
 			},
 		],
 		usableAsTool: true,
@@ -65,96 +40,40 @@ export class MailhooksPollingTrigger implements INodeType {
 
 	async poll(this: IPollFunctions): Promise<INodeExecutionData[][] | null> {
 		const credentials = await this.getCredentials('mailhooksApi');
-		const filterOptions = this.getNodeParameter('filterOptions', {}) as {
-			from?: string;
-			to?: string;
-			subject?: string;
+		const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+		const inboxId = this.getNodeParameter('inboxId') as string;
+
+		const options: IHttpRequestOptions = {
+			method: 'GET',
+			url: inboxId ? `${baseUrl}/v1/inboxes/${inboxId}/emails` : `${baseUrl}/v1/emails`,
+			qs: { perPage: '50', 'sort[field]': 'createdAt', 'sort[order]': 'desc' },
 		};
 
-		const mailhooks = new MailhooksSDK({
-			apiKey: credentials.apiKey as string,
-			baseUrl: credentials.baseUrl as string,
-		});
+		const response = await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'mailhooksApi',
+			options,
+		);
 
-		// Get the last poll time from workflow static data
-		const webhookData = this.getWorkflowStaticData('node');
-		const lastPollTime = webhookData.lastPollTime as string | undefined;
-		const processedIds = (webhookData.processedIds as string[]) || [];
+		const emails = response?.data ?? response;
+		 
+		const emailList = Array.isArray(emails) ? emails : [];
 
-		const now = new Date();
+		const lastRunDate = this.getWorkflowStaticData('node').lastRunDate as string | undefined;
+		const newEmails = lastRunDate
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			? emailList.filter((e: any) => new Date(e.createdAt) > new Date(lastRunDate))
+			: emailList;
 
-		// First run: set lastPollTime to now and return nothing
-		// This ensures only emails received AFTER workflow activation are processed
-		if (!lastPollTime) {
-			webhookData.lastPollTime = now.toISOString();
+		if (newEmails.length === 0) {
 			return null;
 		}
 
-		// Build filter using last poll time
-		const filter: {
-			from?: string;
-			to?: string;
-			subject?: string;
-			startDate?: string;
-		} = {
-			startDate: lastPollTime,
-		};
+		this.getWorkflowStaticData('node').lastRunDate = new Date().toISOString();
 
-		if (filterOptions.from) filter.from = filterOptions.from;
-		if (filterOptions.to) filter.to = filterOptions.to;
-		if (filterOptions.subject) filter.subject = filterOptions.subject;
-
-		try {
-			const response = await mailhooks.emails.list({
-				filter,
-				sort: { field: 'createdAt', order: 'asc' },
-				perPage: 100,
-			});
-
-			// Update last poll time for next iteration
-			webhookData.lastPollTime = now.toISOString();
-
-			if (response.data.length === 0) {
-				return null;
-			}
-
-			// Filter out already processed emails by ID
-			const newEmails = response.data.filter(
-				(email: Email) => !processedIds.includes(email.id)
-			);
-
-			if (newEmails.length === 0) {
-				return null;
-			}
-
-			// Update processed IDs - keep only recent ones to avoid memory bloat
-			// Keep IDs from current batch plus last 100 to handle edge cases
-			const newProcessedIds = [
-				...newEmails.map((email: Email) => email.id),
-				...processedIds.slice(0, 100),
-			];
-			webhookData.processedIds = newProcessedIds;
-
-			return [
-				newEmails.map((email: Email) => ({
-					json: {
-						id: email.id,
-						from: email.from,
-						to: email.to,
-						subject: email.subject,
-						read: email.read,
-						createdAt: email.createdAt,
-						attachments: email.attachments,
-						usesCustomStorage: email.usesCustomStorage,
-						storageConfig: email.storageConfig,
-						storagePath: email.storagePath,
-					},
-				})),
-			];
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), {
-				message: `Failed to poll for emails: ${(error as Error).message}`,
-			});
-		}
+		return [newEmails.map(
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(e: any) => ({ json: e as IDataObject }),
+		)];
 	}
 }

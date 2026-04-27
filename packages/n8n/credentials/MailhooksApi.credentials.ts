@@ -10,22 +10,24 @@ export class MailhooksApi implements ICredentialType {
 	displayName = 'Mailhooks'; // eslint-disable-line n8n-nodes-base/cred-class-field-display-name-missing-api
 	documentationUrl = 'https://mailhooks.dev/docs';
 	icon = 'file:mailhooks-logo.png' as const;
+
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
 			name: 'apiKey',
 			type: 'string',
-			typeOptions: { password: true },
+			typeOptions: {
+				password: true,
+			},
 			default: '',
 			required: true,
-			description: 'Your Mailhooks API key',
 		},
 		{
 			displayName: 'Base URL',
 			name: 'baseUrl',
 			type: 'string',
 			default: 'https://mailhooks.dev/api',
-			description: 'The base URL for the Mailhooks API',
+			description: 'The Mailhooks API base URL',
 		},
 	];
 
@@ -33,7 +35,7 @@ export class MailhooksApi implements ICredentialType {
 		type: 'generic',
 		properties: {
 			headers: {
-				'x-api-key': '={{$credentials.apiKey}}',
+				'X-API-Key': '={{$credentials.apiKey}}',
 			},
 		},
 	};
@@ -41,8 +43,7 @@ export class MailhooksApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
-			url: '/v1/emails?perPage=1',
-			method: 'GET',
+			url: '/v1/inboxes',
 		},
 	};
 }

@@ -6,9 +6,8 @@ module.exports = {
 	testMatch: ['**/__tests__/**/*.test.ts'],
 	moduleNameMapper: {
 		'^n8n-workflow$': '<rootDir>/__mocks__/n8n-workflow.ts',
-		'^@mailhooks/sdk$': '<rootDir>/__mocks__/@mailhooks/sdk.ts',
 	},
 	transformIgnorePatterns: [
-		'node_modules/(?!(@mailhooks/sdk)/)',
+		'node_modules/',
 	],
 };

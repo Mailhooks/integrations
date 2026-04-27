@@ -1,15 +1,40 @@
 import type {
-	IHookFunctions,
 	IWebhookFunctions,
-	ILoadOptionsFunctions,
-	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
-	IWebhookResponseData,
 	IDataObject,
+	IWebhookResponseData,
 } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
-import { verifyWebhookSignature, parseWebhookPayload } from '@mailhooks/sdk';
+
+async function verifyWebhookSignature(
+	payload: string,
+	signature: string,
+	secret: string,
+): Promise<boolean> {
+	if (!payload || !signature || !secret) return false;
+	const normalizedSignature = signature.trim().toLowerCase();
+	if (!/^[a-f0-9]{64}$/.test(normalizedSignature)) return false;
+
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey(
+		'raw',
+		encoder.encode(secret),
+		{ name: 'HMAC', hash: 'SHA-256' },
+		false,
+		['sign'],
+	);
+	const sigBuf = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+	const expectedHex = Array.from(new Uint8Array(sigBuf))
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
+
+	if (expectedHex.length !== normalizedSignature.length) return false;
+	let mismatch = 0;
+	for (let i = 0; i < expectedHex.length; i++) {
+		mismatch |= expectedHex.charCodeAt(i) ^ normalizedSignature.charCodeAt(i);
+	}
+	return mismatch === 0;
+}
 
 export class MailhooksTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -18,217 +43,63 @@ export class MailhooksTrigger implements INodeType {
 		icon: 'file:mailhooks-logo.svg',
 		group: ['trigger'],
 		version: 1,
-		subtitle: '={{$parameter["event"]}}',
-		description: 'Starts the workflow when a Mailhooks webhook event is received',
-		defaults: {
-			name: 'Mailhooks Trigger',
-		},
+		description: 'Receive Mailhooks webhook events',
+		defaults: { name: 'Mailhooks Trigger' },
 		inputs: [],
-		outputs: [NodeConnectionTypes.Main],
-		credentials: [
-			{
-				name: 'mailhooksApi',
-				required: true,
-			},
-		],
+		outputs: ['main'],
+		credentials: [{ name: 'mailhooksApi', required: true }],
 		webhooks: [
 			{
 				name: 'default',
-				httpMethod: 'POST',
-				responseMode: 'onReceived',
-				path: 'webhook',
+				httpMethod: 'POST' as const,
+				path: 'mailhooks-webhook',
+				isAvailable: true,
 			},
 		],
 		properties: [
 			{
-				displayName: 'Event',
-				name: 'event',
-				type: 'options',
+				displayName: 'Events',
+				name: 'events',
+				type: 'multiOptions',
 				options: [
-					{
-						name: 'Email Received',
-						value: 'email.received',
-						description: 'Triggered when a new email is received',
-					},
+					{ name: 'Email Received', value: 'email.received' },
+					{ name: 'Email Updated', value: 'email.updated' },
 				],
-				default: 'email.received',
-				description: 'The event to listen for',
+				default: ['email.received'],
+				description: 'Events to listen for',
 			},
 			{
-				displayName: 'Inbox Name or ID',
-				name: 'inboxId',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getInboxes' },
-				default: '',
-				description: 'Restrict this trigger to a specific inbox (choose All Inboxes for none). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				displayName: 'Verify Signature',
+				name: 'verifySignature',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to verify the webhook signature',
 			},
 		],
 		usableAsTool: true,
 	};
 
-	methods = {
-		loadOptions: {
-			async getInboxes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const credentials = await this.getCredentials('mailhooksApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
-
-				const response = (await this.helpers.httpRequest({
-					method: 'GET',
-					baseURL: baseUrl,
-					url: '/v1/inboxes',
-					headers: { 'X-API-Key': credentials.apiKey as string },
-				})) as IDataObject;
-
-				const inboxes = (Array.isArray(response) ? response : (response.data as IDataObject[])) ?? [];
-				const options: INodePropertyOptions[] = [{ name: 'All Inboxes', value: '' }];
-				for (const inbox of inboxes) {
-					const name =
-						(inbox.address as string) ||
-						(inbox.addressPrefix as string) ||
-						(inbox.id as string);
-					options.push({ name, value: inbox.id as string });
-				}
-				return options;
-			},
-		},
-	};
-
-	webhookMethods = {
-		default: {
-			async checkExists(this: IHookFunctions): Promise<boolean> {
-				const webhookData = this.getWorkflowStaticData('node');
-				const webhookId = webhookData.mailhooksWebhookId as string | undefined;
-				if (!webhookId) return false;
-
-				const credentials = await this.getCredentials('mailhooksApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
-
-				try {
-					await this.helpers.httpRequest({
-						method: 'GET',
-						baseURL: baseUrl,
-						url: `/v1/webhooks/${webhookId}`,
-						headers: {
-							'X-API-Key': credentials.apiKey as string,
-						},
-					});
-					return true;
-				} catch {
-					// Webhook no longer exists on Mailhooks side
-					webhookData.mailhooksWebhookId = undefined;
-					webhookData.mailhooksWebhookSecret = undefined;
-					return false;
-				}
-			},
-
-			async create(this: IHookFunctions): Promise<boolean> {
-				const webhookUrl = this.getNodeWebhookUrl('default');
-				const webhookData = this.getWorkflowStaticData('node');
-				const event = this.getNodeParameter('event') as string;
-				const inboxId = this.getNodeParameter('inboxId', '') as string;
-
-				const credentials = await this.getCredentials('mailhooksApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
-
-				const body: Record<string, string | string[] | undefined> = {
-					url: webhookUrl,
-					events: [event],
-				};
-				if (inboxId) body.inboxId = inboxId;
-
-				const result = (await this.helpers.httpRequest({
-					method: 'POST',
-					baseURL: baseUrl,
-					url: '/v1/webhooks',
-					headers: {
-						'X-API-Key': credentials.apiKey as string,
-						'Content-Type': 'application/json',
-					},
-					body,
-				})) as IDataObject;
-
-				webhookData.mailhooksWebhookId = result.id;
-				webhookData.mailhooksWebhookSecret = result.secret;
-				return true;
-			},
-
-			async delete(this: IHookFunctions): Promise<boolean> {
-				const webhookData = this.getWorkflowStaticData('node');
-				const webhookId = webhookData.mailhooksWebhookId as string | undefined;
-				if (!webhookId) return true;
-
-				const credentials = await this.getCredentials('mailhooksApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
-
-				try {
-					await this.helpers.httpRequest({
-						method: 'DELETE',
-						baseURL: baseUrl,
-						url: `/v1/webhooks/${webhookId}`,
-						headers: {
-							'X-API-Key': credentials.apiKey as string,
-						},
-					});
-				} catch {
-					// Webhook may already be deleted — that's fine
-				}
-
-				webhookData.mailhooksWebhookId = undefined;
-				webhookData.mailhooksWebhookSecret = undefined;
-				return true;
-			},
-		},
-	};
-
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
-		const webhookData = this.getWorkflowStaticData('node');
-		const webhookSecret = webhookData.mailhooksWebhookSecret as string | undefined;
-		const req = this.getRequestObject();
-		const body = req.body;
+		const body = this.getBodyData() as IDataObject;
+		const headers = this.getHeaderData() as Record<string, string>;
+		const verifySignature = this.getNodeParameter('verifySignature') as boolean;
 
-		// Verify signature if secret is provided
-		if (webhookSecret) {
-			const signature = req.headers['x-webhook-signature'] as string;
-			const rawBody = typeof body === 'string' ? body : JSON.stringify(body);
+		if (verifySignature) {
+			const credentials = await this.getCredentials('mailhooksApi');
+			const secret = credentials.apiKey as string;
+			const signature = headers['x-webhook-signature'] || headers['X-Webhook-Signature'] || '';
+			const rawBody = JSON.stringify(body);
 
-			if (!signature || !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+			const isValid = await verifyWebhookSignature(rawBody, signature, secret);
+			if (!isValid) {
 				return {
-					webhookResponse: {
-						status: 401,
-						body: 'Invalid signature',
-					},
+					webhookResponse: { statusCode: 401, body: { error: 'Invalid signature' } },
 				};
 			}
 		}
 
-		// Parse the webhook payload
-		const payload = typeof body === 'string' ? parseWebhookPayload(body) : body;
-
 		return {
-			workflowData: [
-				[
-					{
-						json: {
-							id: payload.id,
-							from: payload.from,
-							to: payload.to,
-							subject: payload.subject,
-							body: payload.body,
-							html: payload.html,
-							attachments: payload.attachments,
-							receivedAt: payload.receivedAt,
-							spfResult: payload.spfResult,
-							dkimResult: payload.dkimResult,
-							dmarcResult: payload.dmarcResult,
-							authSummary: payload.authSummary,
-							headers: payload.headers,
-							usesCustomStorage: payload.usesCustomStorage,
-							storagePath: payload.storagePath,
-							storageConfig: payload.storageConfig,
-						},
-					},
-				],
-			],
+			workflowData: [[{ json: body }]],
 		};
 	}
 }

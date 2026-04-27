@@ -34,15 +34,17 @@ describe('MailhooksPollingTrigger', () => {
 		expect(creds[0].required).toBe(true);
 	});
 
-	it('should have filterOptions parameter', () => {
+	it('should have an inboxId parameter', () => {
 		const node = new MailhooksPollingTrigger();
 		const propNames = node.description.properties.map((p) => p.name);
-		expect(propNames).toContain('filterOptions');
+		expect(propNames).toContain('inboxId');
 	});
 
-	it('should be marked as polling', () => {
+	it('should have a pollInterval parameter defaulting to 30', () => {
 		const node = new MailhooksPollingTrigger();
-		expect(node.description.polling).toBe(true);
+		const pollIntervalProp = node.description.properties.find((p) => p.name === 'pollInterval');
+		expect(pollIntervalProp).toBeDefined();
+		expect(pollIntervalProp?.default).toBe(30);
 	});
 
 	it('should have a poll method', () => {
