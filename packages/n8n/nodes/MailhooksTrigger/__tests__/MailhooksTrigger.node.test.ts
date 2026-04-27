@@ -66,6 +66,13 @@ describe('MailhooksTrigger', () => {
 		expect(verifyProp?.default).toBe(true);
 	});
 
+	it('should have an optional inboxId parameter', () => {
+		const node = new MailhooksTrigger();
+		const inboxIdProp = node.description.properties.find((p) => p.name === 'inboxId');
+		expect(inboxIdProp).toBeDefined();
+		expect(inboxIdProp?.default).toBe('');
+	});
+
 	it('should have a webhook method', () => {
 		const node = new MailhooksTrigger();
 		expect(typeof node.webhook).toBe('function');

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+### Added
+
+- Inbox ID filter on MailhooksTrigger node (optional — only trigger for emails in a specific inbox)
+
 ## 0.6.0
 
 ### Changed

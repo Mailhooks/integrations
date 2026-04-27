@@ -69,6 +69,13 @@ export class MailhooksTrigger implements INodeType {
 				description: 'Events to listen for',
 			},
 			{
+				displayName: 'Inbox ID',
+				name: 'inboxId',
+				type: 'string',
+				default: '',
+				description: 'Optional: only trigger for emails in a specific inbox',
+			},
+			{
 				displayName: 'Verify Signature',
 				name: 'verifySignature',
 				type: 'boolean',
