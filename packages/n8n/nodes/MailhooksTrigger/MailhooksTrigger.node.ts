@@ -115,7 +115,7 @@ export class MailhooksTrigger implements INodeType {
 				return inboxList.map(
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(inbox: any) => ({
-						name: `${inbox.name} (${inbox.address})`,
+						name: `${inbox.name || inbox.addressPrefix || inbox.address} (${inbox.address})`,
 						value: inbox.id,
 					}),
 				);
