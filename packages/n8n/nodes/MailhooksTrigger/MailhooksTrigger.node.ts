@@ -9,6 +9,7 @@ import type {
 	INodePropertyOptions,
 	IHttpRequestOptions,
 } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 async function verifyWebhookSignature(
 	payload: string,
@@ -50,7 +51,8 @@ export class MailhooksTrigger implements INodeType {
 		description: 'Receive Mailhooks webhook events',
 		defaults: { name: 'Mailhooks Trigger' },
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
+		subtitle: '={{$parameter?.event || "Email Received"}}',
 		credentials: [{ name: 'mailhooksApi', required: true }],
 		webhooks: [
 			{

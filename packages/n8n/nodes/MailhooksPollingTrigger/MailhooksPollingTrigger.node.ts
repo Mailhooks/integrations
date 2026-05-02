@@ -6,6 +6,7 @@ import type {
 	IDataObject,
 	IHttpRequestOptions,
 } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 export class MailhooksPollingTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -17,7 +18,8 @@ export class MailhooksPollingTrigger implements INodeType {
 		description: 'Poll Mailhooks for new emails',
 		defaults: { name: 'Mailhooks Polling Trigger' },
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
+		subtitle: '=Poll every {{$parameter.pollInterval || 30}}s',
 		credentials: [{ name: 'mailhooksApi', required: true }],
 		properties: [
 			{
