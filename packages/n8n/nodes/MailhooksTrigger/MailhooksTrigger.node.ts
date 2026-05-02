@@ -86,7 +86,22 @@ export class MailhooksTrigger implements INodeType {
 				name: 'verifySignature',
 				type: 'boolean',
 				default: true,
-				description: 'Whether to verify the webhook signature',
+				description: 'Whether to verify the webhook signature for authenticity',
+			},
+			{
+				displayName: 'Webhook Secret',
+				name: 'webhookSecret',
+				type: 'string',
+				typeOptions: {
+					password: true,
+				},
+				default: '',
+				description: 'Your Mailhooks webhook signing secret (starts with whsec_). Found when creating a webhook or via the "Regenerate Secret" option. Required when signature verification is enabled.',
+				displayOptions: {
+					show: {
+						verifySignature: [true],
+					},
+				},
 			},
 		],
 		usableAsTool: true,
@@ -129,8 +144,8 @@ export class MailhooksTrigger implements INodeType {
 		const verifySignature = this.getNodeParameter('verifySignature') as boolean;
 
 		if (verifySignature) {
-			const credentials = await this.getCredentials('mailhooksApi');
-			const secret = credentials.apiKey as string;
+			const webhookSecret = this.getNodeParameter('webhookSecret') as string;
+			const secret = webhookSecret;
 			const signature = headers['x-webhook-signature'] || headers['X-Webhook-Signature'] || '';
 			const rawBody = JSON.stringify(body);
 

@@ -5,6 +5,7 @@
 ### Fixed
 
 - Inbox dropdown in n8n showed "undefined" instead of the inbox name because the API returns `addressPrefix` (not `name`). Now uses `addressPrefix` with a fallback chain: `name || addressPrefix || address`.
+- Webhook signature verification was using the API key as the HMAC secret, but Mailhooks signs webhooks with the webhook's own `whsec_...` secret. Added a `Webhook Secret` parameter to the trigger node so users can provide the correct signing secret. Verification is enabled by default and now uses constant-time comparison to prevent timing attacks.
 
 ## 0.6.2
 
