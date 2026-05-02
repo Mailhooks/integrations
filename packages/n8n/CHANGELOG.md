@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3
+
+### Fixed
+
+- Inbox dropdown in n8n showed "undefined" instead of the inbox name because the API returns `addressPrefix` (not `name`). Now uses `addressPrefix` with a fallback chain: `name || addressPrefix || address`.
+
 ## 0.6.2
 
 ### Changed
