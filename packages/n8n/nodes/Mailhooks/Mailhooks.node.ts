@@ -147,11 +147,11 @@ export class Mailhooks implements INodeType {
 			// ─── Inbox ───────────────────────────────────────────────────────
 			{
 				displayName: 'Operation', name: 'operation', type: 'options', noDataExpression: true,
-				displayOptions: { show: { resource: ['inbox'] } },
-				options: [
-					{ name: 'List', value: 'list', description: 'List all inboxes', action: 'List inboxes' },
-					{ name: 'Get', value: 'get', description: 'Get a specific inbox', action: 'Get inbox' },
+		displayOptions: { show: { resource: ['inbox'] } },
+			options: [
 					{ name: 'Create', value: 'create', description: 'Create a new inbox', action: 'Create inbox' },
+					{ name: 'Get', value: 'get', description: 'Get a specific inbox', action: 'Get inbox' },
+					{ name: 'List', value: 'list', description: 'List all inboxes', action: 'List inboxes' },
 				],
 				default: 'list',
 			},
