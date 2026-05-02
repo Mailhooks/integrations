@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1
+
+### Fixed
+- Renamed `hookFunctions` to `webhookMethods` so n8n actually calls checkExists/create/delete lifecycle hooks on workflow activation/deactivation. The previous v0.7.0 used the wrong property name, causing webhooks to never be created on the Mailhooks API and resulting in "not registered" errors on delivery.
+- Added `responseMode: 'onReceived'` to webhook definition so n8n responds 200 immediately on webhook receipt, preventing Mailhooks delivery timeouts.
+
 ## 0.7.0
 
 ### Changed

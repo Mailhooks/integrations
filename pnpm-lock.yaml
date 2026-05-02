@@ -70,15 +70,15 @@ importers:
         specifier: '*'
         version: 1.120.7
     devDependencies:
-      '@mailhooks/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@n8n/node-cli':
         specifier: '*'
         version: 0.18.0(@typescript-eslint/utils@8.53.1(eslint@9.32.0(jiti@2.6.1))(typescript@5.9.2))(eslint@9.32.0(jiti@2.6.1))(typescript@5.9.2)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.7
       eslint:
         specifier: 9.32.0
         version: 9.32.0(jiti@2.6.1)

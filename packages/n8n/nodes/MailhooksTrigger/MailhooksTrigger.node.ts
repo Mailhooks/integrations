@@ -57,6 +57,7 @@ export class MailhooksTrigger implements INodeType {
 				name: 'default',
 				httpMethod: 'POST' as const,
 				path: 'mailhooks-webhook',
+				responseMode: 'onReceived' as const,
 				isAvailable: true,
 			},
 		],
@@ -118,7 +119,7 @@ export class MailhooksTrigger implements INodeType {
 		},
 	};
 
-	hookFunctions = {
+	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const staticData = this.getWorkflowStaticData('node') as IDataObject;
