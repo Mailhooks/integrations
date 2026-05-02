@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+
+### Changed
+
+- **Breaking:** The MailhooksTrigger node now auto-creates and auto-deletes webhooks in Mailhooks when the n8n workflow is activated/deactivated. This replaces the previous manual setup flow.
+- When a workflow is activated, the trigger calls `POST /v1/webhooks` to create a webhook pointing at the n8n instance. The webhook secret is stored in n8n's static data and used for signature verification automatically.
+- When a workflow is deactivated, the trigger calls `DELETE /v1/webhooks/:id` to clean up.
+- Removed the manual `Webhook Secret` and `Verify Signature` parameters. Signature verification is now automatic using the secret returned by the Mailhooks API on webhook creation.
+
 ## 0.6.3
 
 ### Fixed

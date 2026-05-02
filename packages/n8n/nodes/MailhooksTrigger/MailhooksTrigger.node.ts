@@ -1,4 +1,5 @@
 import type {
+	IHookFunctions,
 	IWebhookFunctions,
 	INodeType,
 	INodeTypeDescription,
@@ -45,7 +46,7 @@ export class MailhooksTrigger implements INodeType {
 		name: 'mailhooksTrigger',
 		icon: 'file:mailhooks-logo.svg',
 		group: ['trigger'],
-		version: 1,
+		version: 2,
 		description: 'Receive Mailhooks webhook events',
 		defaults: { name: 'Mailhooks Trigger' },
 		inputs: [],
@@ -79,14 +80,8 @@ export class MailhooksTrigger implements INodeType {
 					loadOptionsMethod: 'getInboxes',
 				},
 				default: '',
-				description: 'Optional: only trigger for emails in a specific inbox. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Verify Signature',
-				name: 'verifySignature',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to verify the webhook signature',
+				description:
+					'Optional: only trigger for emails in a specific inbox. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 		],
 		usableAsTool: true,
@@ -123,17 +118,105 @@ export class MailhooksTrigger implements INodeType {
 		},
 	};
 
+	hookFunctions = {
+		default: {
+			async checkExists(this: IHookFunctions): Promise<boolean> {
+				const staticData = this.getWorkflowStaticData('node') as IDataObject;
+				const webhookId = staticData.webhookId as string | undefined;
+				if (!webhookId) return false;
+
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				try {
+					const options: IHttpRequestOptions = {
+						method: 'GET',
+						url: `${baseUrl}/v1/webhooks/${webhookId}`,
+					};
+					await this.helpers.httpRequestWithAuthentication.call(this, 'mailhooksApi', options);
+					return true;
+				} catch {
+					return false;
+				}
+			},
+
+			async create(this: IHookFunctions): Promise<boolean> {
+				const webhookUrl = this.getNodeWebhookUrl('default');
+				const staticData = this.getWorkflowStaticData('node') as IDataObject;
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				const events = this.getNodeParameter('events') as string[];
+				const inboxId = this.getNodeParameter('inboxId') as string;
+
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const body: any = {
+					url: webhookUrl,
+					active: true,
+					events,
+				};
+
+				if (inboxId) {
+					body.inboxId = inboxId;
+				}
+
+				const options: IHttpRequestOptions = {
+					method: 'POST',
+					url: `${baseUrl}/v1/webhooks`,
+					body,
+				};
+
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'mailhooksApi',
+					options,
+				);
+
+				// Store the webhook ID and secret in static data for verification and cleanup
+				staticData.webhookId = response.id;
+				staticData.webhookSecret = response.secret;
+
+				return true;
+			},
+
+			async delete(this: IHookFunctions): Promise<boolean> {
+				const staticData = this.getWorkflowStaticData('node') as IDataObject;
+				const webhookId = staticData.webhookId as string | undefined;
+				if (!webhookId) return true;
+
+				const credentials = await this.getCredentials('mailhooksApi');
+				const baseUrl = (credentials.baseUrl as string) || 'https://mailhooks.dev/api';
+
+				try {
+					const options: IHttpRequestOptions = {
+						method: 'DELETE',
+						url: `${baseUrl}/v1/webhooks/${webhookId}`,
+					};
+					await this.helpers.httpRequestWithAuthentication.call(this, 'mailhooksApi', options);
+				} catch {
+					// Webhook may have been deleted outside n8n, that's fine
+				}
+
+				// Clear static data
+				delete staticData.webhookId;
+				delete staticData.webhookSecret;
+
+				return true;
+			},
+		},
+	};
+
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
 		const body = this.getBodyData() as IDataObject;
 		const headers = this.getHeaderData() as Record<string, string>;
-		const verifySignature = this.getNodeParameter('verifySignature') as boolean;
+		const staticData = this.getWorkflowStaticData('node') as IDataObject;
 
-		if (verifySignature) {
-			const credentials = await this.getCredentials('mailhooksApi');
-			const secret = credentials.apiKey as string;
-			const signature = headers['x-webhook-signature'] || headers['X-Webhook-Signature'] || '';
-			const rawBody = JSON.stringify(body);
+		// Always verify signature using the secret stored when the webhook was created
+		const secret = staticData.webhookSecret as string;
+		const signature = headers['x-webhook-signature'] || headers['X-Webhook-Signature'] || '';
+		const rawBody = JSON.stringify(body);
 
+		if (secret) {
 			const isValid = await verifyWebhookSignature(rawBody, signature, secret);
 			if (!isValid) {
 				return {
