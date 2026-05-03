@@ -13,15 +13,8 @@ This repo is a pnpm monorepo containing published npm packages for the [Mailhook
 | `packages/sdk` | `@mailhooks/sdk` | 2.6.14 | `tsup` (ESM-only) | none | none |
 | `packages/mcp` | `@mailhooks/mcp` | 1.0.11 | `tsc` (CJS) | none | none |
 | `packages/mcp-mailhooks` | `mcp-mailhooks` | 0.1.0 | `tsc` (ESM) | `vitest run` (18 tests) | none |
-| `packages/n8n` | `n8n-nodes-mailhooks` | 0.2.0 | `n8n-node build` (CJS) | `jest` (42 tests) | `n8n-node lint` |
 
-### Package relationships
-
-```
-@mailhooks/sdk ← (depends on) ─── n8n-nodes-mailhooks
-     ↑
-     └── SDK must be built before n8n (CI does this explicitly)
-```
+The n8n community node (`n8n-nodes-mailhooks`) has moved to its own repo: [`Mailhooks/n8n-nodes-mailhooks`](https://github.com/Mailhooks/n8n-nodes-mailhooks).
 
 The two MCP servers are standalone — they call the Mailhooks API directly via axios, not through the SDK.
 
@@ -41,11 +34,6 @@ pnpm build          # builds all packages via pnpm -r
 pnpm --filter @mailhooks/sdk build
 pnpm --filter @mailhooks/sdk dev     # tsc --watch
 
-# n8n node
-pnpm --filter n8n-nodes-mailhooks build
-pnpm --filter n8n-nodes-mailhooks lint
-pnpm --filter n8n-nodes-mailhooks dev
-
 # MCP (new)
 pnpm --filter mcp-mailhooks build
 pnpm --filter mcp-mailhooks dev       # tsx src/index.ts
@@ -54,14 +42,9 @@ pnpm --filter mcp-mailhooks dev       # tsx src/index.ts
 pnpm --filter @mailhooks/mcp build
 ```
 
-**Build order matters:** SDK must build before n8n. The n8n publish workflow does `pnpm --filter @mailhooks/sdk run build` first.
-
 ## Testing
 
 ```bash
-# n8n — Jest with ts-jest, mocks for n8n-workflow and @mailhooks/sdk
-cd packages/n8n && npx jest
-
 # MCP (new) — Vitest with axios mocks
 cd packages/mcp-mailhooks && npx vitest run
 
@@ -69,23 +52,16 @@ cd packages/mcp-mailhooks && npx vitest run
 # MCP (legacy) — no tests
 ```
 
-### n8n test setup
-
-Jest can't import `n8n-workflow` or `@mailhooks/sdk` directly (ESM-only packages). The jest config uses `moduleNameMapper` to redirect both to mocks in `packages/n8n/__mocks__/`:
-- `__mocks__/n8n-workflow.ts` — exports `NodeConnectionTypes`, `NodeOperationError`, `NodeApiError`
-- `__mocks__/@mailhooks/sdk.ts` — exports `Mailhooks` class, `verifyWebhookSignature`, `parseEml`, etc.
-
 ## Publishing
 
-Three GitHub Actions workflows auto-publish to npm when `package.json` version changes on `main`:
+Two GitHub Actions workflows auto-publish to npm when `package.json` version changes on `main`:
 
 | Workflow | Trigger | npm package | Git tag prefix |
 |----------|---------|-------------|----------------|
 | `publish-sdk.yml` | push to main (paths: sdk/package.json) | `@mailhooks/sdk` | `sdk-v` |
 | `publish-mcp.yml` | push to main (paths: mcp/package.json) | `@mailhooks/mcp` | `mcp-v` |
-| `publish-n8n.yml` | push to main (paths: n8n/package.json) | `n8n-nodes-mailhooks` | `n8n-v` |
 
-All three also support `workflow_dispatch` with a version input for manual publishes.
+Both also support `workflow_dispatch` with a version input for manual publishes.
 
 **To publish a new version:**
 1. Bump `version` in the package's `package.json`
