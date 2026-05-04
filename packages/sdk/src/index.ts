@@ -1,5 +1,6 @@
 export { Mailhooks } from './mailhooks';
 export { EmailsResource } from './resources/emails';
+export { InboxesResource } from './resources/inboxes';
 export * from './types';
 
 // Webhook verification utilities
