@@ -5,5 +5,14 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r dev"
   },
-  "packageManager": "pnpm@10.4.0"
+  "packageManager": "pnpm@10.4.0",
+  "bugs": {
+    "url": "https://github.com/Mailhooks/integrations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mailhooks/integrations.git"
+  },
+  "homepage": "https://github.com/Mailhooks/integrations#readme",
+  "license": "MIT"
 }
