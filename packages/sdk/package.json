@@ -11,6 +11,7 @@
   "bugs": {
     "url": "https://github.com/Mailhooks/integrations/issues"
   },
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
